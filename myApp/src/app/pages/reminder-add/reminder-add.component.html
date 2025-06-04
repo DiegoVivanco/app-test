@@ -1,0 +1,52 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/reminder-list"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ isEditMode ? 'Edit Reminder' : 'Add Reminder' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <form [formGroup]="reminderForm" (ngSubmit)="saveReminder()">
+    <ion-item>
+      <ion-label position="floating">Reminder Text</ion-label>
+      <ion-input formControlName="text" type="text"></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label position="floating">Time (e.g., 09:00)</ion-label>
+      <ion-input formControlName="time" type="time"></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label>Frequency</ion-label>
+      <ion-select formControlName="frequency" interface="popover">
+        <ion-select-option value="daily">Daily</ion-select-option>
+        <ion-select-option value="weekly">Weekly</ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <div *ngIf="reminderForm.get('frequency')?.value === 'weekly' || reminderForm.get('frequency')?.value === 'daily'">
+      <ion-list-header>
+        <ion-label>Active Days of Week (for Weekly, or specific Daily)</ion-label>
+      </ion-list-header>
+      <ion-item *ngFor="let day of daysOfWeekOptions">
+        <ion-label>{{day.name}}</ion-label>
+        <ion-checkbox slot="end" [(ngModel)]="day.isChecked" [ngModelOptions]="{standalone: true}"></ion-checkbox>
+      </ion-item>
+    </div>
+
+    <div>
+      <ion-list-header>
+        <ion-label>Optional Days (e.g., skip on these days)</ion-label>
+      </ion-list-header>
+      <ion-item *ngFor="let day of optionalDaysOptions">
+        <ion-label>{{day.name}}</ion-label>
+        <ion-checkbox slot="end" [(ngModel)]="day.isChecked" [ngModelOptions]="{standalone: true}"></ion-checkbox>
+      </ion-item>
+    </div>
+
+    <ion-button expand="full" type="submit" [disabled]="reminderForm.invalid">
+      {{ isEditMode ? 'Update Reminder' : 'Add Reminder' }}
+    </ion-button>
+  </form>
+</ion-content>
