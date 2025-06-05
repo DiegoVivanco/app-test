@@ -30,29 +30,25 @@ export class ReminderService {
     await this.platform.ready();
     console.log('Platform ready in ReminderService. Initializing notifications.');
 
-    if (this.platform.is('cordova')) {
-      const hasPermission = await this.checkPermissions(); // Only check permissions on Cordova
-      if (hasPermission) {
-        console.log('Notification permissions granted. Scheduling all notifications for Cordova.');
-        await this.scheduleAllNotifications();
-      } else {
-        console.warn('Notification permissions not granted. Cannot schedule notifications for Cordova.');
-        // Optionally, one might still call scheduleAllNotifications() here if alerts are desired
-        // even if Cordova permissions failed, but current web sim logic is in scheduleNotification itself.
-        // For now, if Cordova permissions fail, we don't proceed to schedule (neither real nor simulated).
-      }
+    if (!this.platform.is('cordova')) {
+      console.log('Not on Cordova, skipping notification scheduling logic in initializeNotifications.');
+      return;
+    }
+    // Cordova-specific logic from here
+    const hasPermission = await this.checkPermissions();
+    if (hasPermission) {
+      console.log('Notification permissions granted. Scheduling all notifications for Cordova.');
+      await this.scheduleAllNotifications();
     } else {
-      // Web mode: no permissions needed for alerts, simulate scheduling.
-      console.log('Not on Cordova. Simulating scheduling all notifications with alerts.');
-      await this.scheduleAllNotifications(); // This will now trigger alerts via scheduleNotification
+      console.warn('Notification permissions not granted. Cannot schedule notifications for Cordova.');
     }
   }
 
   private async checkPermissions(): Promise<boolean> {
-    // This method is now only called if platform.is('cordova') is true.
-    // The initial check within this method is redundant but harmless.
+    // This method is only called if platform.is('cordova') is true due to the guard in initializeNotifications.
+    // Thus, the inner check !this.platform.is('cordova') is theoretically not needed but kept for safety.
     if (!this.platform.is('cordova')) {
-      console.warn('checkPermissions called unnecessarily for non-Cordova environment.'); // Should not happen
+      console.warn('checkPermissions called unnecessarily for non-Cordova environment.');
       return false;
     }
     try {
@@ -73,7 +69,7 @@ export class ReminderService {
     }
   }
 
-  public getNumericId(idPart: string): number { // Changed to public
+  private getNumericId(idPart: string): number { // Changed back to private
     let hash = 0;
     for (let i = 0; i < idPart.length; i++) {
       const char = idPart.charCodeAt(i);
@@ -89,36 +85,17 @@ export class ReminderService {
       return;
     }
 
-    if (!this.platform.is('cordova')) {
-      const [hour, minute] = reminder.time.split(':').map(Number); // For alert display
-      if (reminder.frequency === 'daily') {
-        const numericId = this.getNumericId(reminder.id);
-        alert(`[WEB SIM] Programar Notificación:
-ID: ${numericId}
-Texto: ${reminder.text}
-Hora: ${reminder.time}
-Tipo: initial
-Frecuencia: Diario`);
-      } else if (reminder.frequency === 'weekly' && reminder.daysOfWeek && reminder.daysOfWeek.length > 0) {
-        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']; // Spanish day names
-        const scheduledDays = reminder.daysOfWeek.map(d => dayNames[d]).join(', ');
-        const baseNumericId = this.getNumericId(reminder.id); // For informational purpose
+    // This method will now only contain Cordova-specific logic.
+    // The web simulation alerts have been removed from here.
 
-        alert(`[WEB SIM] Programación Semanal Registrada:
-ID Base (informativo): ${baseNumericId}
-Texto: ${reminder.text}
-Hora: ${reminder.time}
-Días Programados: ${scheduledDays}
-Tipo: initial
-Frecuencia: Semanal
-(Nota: La notificación real solo sonaría en los días y hora especificados)`);
-      } else {
-        console.warn('[WEB SIM] Could not determine notification schedule for:', JSON.stringify(reminder));
-      }
+    // Cordova-specific logic
+    if (!this.platform.is('cordova')) {
+      // This block should ideally not be reached if initializeNotifications and other callers handle platform checks.
+      // However, as a safeguard or if called directly:
+      console.warn('scheduleNotification called in non-Cordova context after initial checks, skipping plugin interaction.');
       return;
     }
 
-    // Cordova-specific logic continues if platform.is('cordova')
     if (!reminder.time || !reminder.time.includes(':')) {
         console.error('Invalid time for reminder, cannot schedule:', JSON.stringify(reminder));
         return;
@@ -180,9 +157,11 @@ Frecuencia: Semanal
   }
 
   async scheduleAllNotifications() {
-    // The platform check is now primarily in initializeNotifications for initial scheduling.
-    // scheduleNotification itself will handle alerts for web, or actual scheduling for Cordova.
-    console.log('Attempting to schedule all notifications (platform-dependent behavior in scheduleNotification)...');
+    // This method is only called if on Cordova and permissions are granted (from initializeNotifications)
+    // or if called in web mode where scheduleNotification will then just log alerts (now removed).
+    // For clarity, this method should primarily focus on iterating and calling scheduleNotification.
+    // The individual scheduleNotification will handle platform specifics.
+    console.log('Scheduling all enabled reminders...');
     const reminders = await this.getReminders();
     for (const reminder of reminders) {
       if (reminder.enabled) {
@@ -195,22 +174,11 @@ Frecuencia: Semanal
   }
 
   async cancelNotification(reminder: Reminder) {
+    // This method will now only contain Cordova-specific logic.
+    // The web simulation alerts have been removed from here.
     if (!this.platform.is('cordova')) {
-      let message = '';
-      if (reminder.frequency === 'daily') {
-        message = `[WEB SIM] Cancelar Notificación (Diaria):
-ID: ${this.getNumericId(reminder.id)}
-Texto: ${reminder.text}`;
-      } else if (reminder.frequency === 'weekly' && reminder.daysOfWeek && reminder.daysOfWeek.length > 0) {
-        const idsToCancel = reminder.daysOfWeek.map(day => this.getNumericId(`${reminder.id.substring(0, 8)}-${day}`));
-        message = `[WEB SIM] Cancelar Notificaciones (Semanal):
-IDs: ${idsToCancel.join(', ')}
-Texto: ${reminder.text}`;
-      } else {
-        message = `[WEB SIM] Cancelar Notificación (Frecuencia desconocida o sin días):
-Texto: ${reminder.text}`;
-      }
-      alert(message);
+      // This block should ideally not be reached.
+      console.warn('cancelNotification called in non-Cordova context after initial checks, skipping plugin interaction.');
       return;
     }
 
@@ -316,29 +284,11 @@ Texto: ${reminder.text}`;
 
   async cancelHourlyNotificationsForToday(reminderId: string): Promise<void> {
     if (!this.platform.is('cordova')) {
-      const reminder = this.reminders.find(r => r.id === reminderId);
+      // This block should ideally not be reached if callers check platform first.
+      console.warn('cancelHourlyNotificationsForToday called in non-Cordova context, skipping plugin interaction.');
+      const reminder = this.reminders.find(r => r.id === reminderId); // Keep for potential console log
       const reminderText = reminder ? `"${reminder.text}"` : `ID: ${reminderId}`;
-      let hourlyIdsInfo = "";
-
-      // We can only list potential IDs if we know the reminder exists
-      // and to determine which hours to list (e.g., from current hour to end of day).
-      // This example lists potential IDs for remaining hours of the current day.
-      const currentHour = new Date().getHours();
-      const potentialIds = [];
-      for (let hour = currentHour; hour < 24; hour++) {
-          potentialIds.push(this.getNumericId(`${reminderId}-hourly-${hour}`));
-      }
-
-      if (potentialIds.length > 0) {
-        hourlyIdsInfo = `
-IDs Horarios Potenciales (simulados): ${potentialIds.join(', ')}`;
-      } else {
-        hourlyIdsInfo = `
-(No hay más horas hoy para simular cancelación de IDs horarios)`;
-      }
-
-      alert(`[WEB SIM] Cancelar Notificaciones Horarias (Hoy):
-Para Recordatorio: ${reminderText}${hourlyIdsInfo}`);
+      console.log(`[WEB CONSOLE] Would cancel hourly for: ${reminderText} if alerts were still here.`);
       return;
     }
 

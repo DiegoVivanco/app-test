@@ -15,7 +15,7 @@ import { LocalNotifications, ILocalNotification } from '@ionic-native/local-noti
   styleUrls: ['app.component.scss'],
 })
 export class AppComponent {
-  public isCordova: boolean; // For template access
+  // public isCordova: boolean; // REMOVED
 
   constructor(
     private platform: Platform,
@@ -38,19 +38,11 @@ export class AppComponent {
 
   async setupNotificationHandlers() {
     if (!this.platform.is('cordova')) {
-      this.isCordova = false; // Set for template
-      console.log('[WEB SIM] Cordova LocalNotifications not available. Event listeners not attached.');
-      // Expose a debug function for web testing of notification handling
-      (window as any).simulateNotificationTrigger = (simulatedData: any) => {
-        console.log('[WEB SIM] Manually simulating notification trigger with data:', simulatedData);
-        this.handleNotificationTrigger(simulatedData).catch(error => {
-            console.error('[WEB SIM] Error in simulated handleNotificationTrigger:', error);
-        });
-      };
-      console.log('[WEB SIM] To test notification chaining, call "window.simulateNotificationTrigger({ reminderId: \'your-reminder-id\', type: \'initial\' })" or "window.simulateNotificationTrigger({ reminderId: \'your-reminder-id\', type: \'hourly\', hourOfDay: HH })" in the console.');
-      return; // Still return, as we don't want to attach actual plugin listeners.
+      // this.isCordova = false; // REMOVED
+      console.log('Not on Cordova, skipping setup of LocalNotification handlers.');
+      return; // Return, do not attach listeners or expose debug functions.
     }
-    this.isCordova = true; // Set for template
+    // this.isCordova = true; // REMOVED
 
     this.localNotifications.on('trigger').subscribe(async (notification: ILocalNotification) => {
       console.log('Notification triggered:', JSON.stringify(notification));
@@ -88,92 +80,18 @@ export class AppComponent {
       return;
     }
 
-    // Active day check for 'initial' type simulations in web mode
-    if (notificationType === 'initial' && !this.platform.is('cordova')) {
-      const now = new Date();
-      const currentDayOfWeek = now.getDay(); // 0 for Sunday, 1 for Monday...
-      let isDueToday = false;
-      const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']; // Local day names
-
-      if (reminder.frequency === 'daily') {
-        isDueToday = (!reminder.daysOfWeek || reminder.daysOfWeek.length === 0 || reminder.daysOfWeek.includes(currentDayOfWeek));
-      } else if (reminder.frequency === 'weekly') {
-        isDueToday = reminder.daysOfWeek ? reminder.daysOfWeek.includes(currentDayOfWeek) : false;
-      }
-
-      if (!isDueToday) {
-        const reminderDays = reminder.daysOfWeek ? reminder.daysOfWeek.map(d => dayNames[d]).join(', ') : 'No especificado';
-        alert(`[WEB SIM] Notificación Inicial Ignorada (Simulada):
-Recordatorio: "${reminder.text}"
-Programado para: ${reminder.frequency === 'weekly' ? 'Semanalmente los ' + reminderDays : 'Diariamente'} a las ${reminder.time}.
-Hoy (${dayNames[currentDayOfWeek]}) no es un día activo.`);
-        return; // Stop processing this simulated trigger
-      }
-    }
+    // The active day check and web-specific alert for initial notifications have been removed.
+    // This method will only be called if on Cordova due to the guard in setupNotificationHandlers.
 
     // If an 'initial' notification is triggered and not yet completed today, schedule the first hourly.
-    // This check now also implicitly benefits from the 'reminder' object being available.
     if (notificationType === 'initial' && !this.dailyStatusService.isCompletedToday(reminderId)) {
-      if (!reminder.enabled) { // Reminder object is already fetched
+      if (!reminder.enabled) {
         console.log(`Reminder ${reminderId} is disabled. Not scheduling hourly.`);
         return;
       }
 
       const now = new Date();
       let nextHour = now.getHours() + 1;
-      // const nextHour = new Date(now.getTime() + 10 * 1000).getSeconds(); // For quick testing: next 10 seconds
-
-      if (nextHour < 23) { // Assuming we don't want to schedule past 11 PM for "hourly"
-        // Construct the next hourly notification
-        const numericIdForHourly = this.reminderService.getNumericId(`${reminderId}-hourly-${nextHour}`); // getNumericId needs to be public in ReminderService or duplicated
-        const hourlyNotif: ILocalNotification = {
-          id: numericIdForHourly,
-          title: reminder.text, // Original reminder text as title
-          text: `Recordatorio Horario (${nextHour}:00)`,
-          trigger: { at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), nextHour, 0, 0) },
-          // trigger: { at: new Date(Date.now() + 10000) }, // For quick testing
-          data: {
-            reminderId: reminder.id,
-            type: 'hourly', // Mark this as an hourly notification
-            originalTime: reminder.time, // Keep original time for context if needed
-            hourOfDay: nextHour
-          },
-          foreground: true,
-        };
-
-        if (this.platform.is('cordova')) {
-          console.log('Cordova: Scheduling next hourly notification:', JSON.stringify(hourlyNotif));
-          try {
-            // It's good practice to cancel any existing notification with the same ID before scheduling a new one
-            // This handles cases where an hourly notification might have been scheduled previously for this hour
-            await this.localNotifications.cancel(hourlyNotif.id);
-          } catch (e) {
-            // Ignore if not found or log
-            console.warn(`Could not cancel existing hourly notification ${hourlyNotif.id} before rescheduling:`, e);
-          }
-          await this.localNotifications.schedule(hourlyNotif);
-        } else {
-          // Web fallback
-          const reminderText = reminder ? reminder.text : `ID: ${reminderId}`;
-          alert(`[WEB SIM] Programar Siguiente Notif. Horaria:
-Recordatorio: ${reminderText}
-Para las: ${nextHour}:00
-ID Numérico: ${hourlyNotif.id}
-Tipo: hourly`);
-        }
-      } else {
-        console.log(`Next hour (${nextHour}) is too late, not scheduling next hourly for reminder ${reminderId}.`);
-      }
-    } else if (notificationType === 'hourly' && !this.dailyStatusService.isCompletedToday(reminderId)) {
-      // Logic for subsequent hourly notifications
-      // Reminder object is already fetched and known to exist from the top of the function.
-      if (!reminder.enabled) {
-        console.log(`Hourly: Reminder ${reminderId} is disabled. Not scheduling next.`);
-        return;
-      }
-
-      const now = new Date();
-      let nextHour = (data.hourOfDay || now.getHours()) + 1; // Use hour from data if available, else current + 1
 
       if (nextHour < 23) {
         const numericIdForHourly = this.reminderService.getNumericId(`${reminderId}-hourly-${nextHour}`);
@@ -191,18 +109,46 @@ Tipo: hourly`);
           foreground: true,
         };
 
-        if (this.platform.is('cordova')) {
-          console.log('Cordova: Scheduling next subsequent hourly notification:', JSON.stringify(hourlyNotif));
-           try { await this.localNotifications.cancel(hourlyNotif.id); } catch (e) {}
-          await this.localNotifications.schedule(hourlyNotif);
-        } else {
-          const reminderText = reminder ? reminder.text : `ID: ${reminderId}`;
-          alert(`[WEB SIM] Programar Siguiente Notif. Horaria (desde horaria):
-Recordatorio: ${reminderText}
-Para las: ${nextHour}:00
-ID Numérico: ${hourlyNotif.id}
-Tipo: hourly`);
+        // This logic is now only for Cordova
+        console.log('Cordova: Scheduling next hourly notification:', JSON.stringify(hourlyNotif));
+        try {
+          await this.localNotifications.cancel(hourlyNotif.id);
+        } catch (e) {
+          console.warn(`Could not cancel existing hourly notification ${hourlyNotif.id} before rescheduling:`, e);
         }
+        await this.localNotifications.schedule(hourlyNotif);
+      } else {
+        console.log(`Next hour (${nextHour}) is too late, not scheduling next hourly for reminder ${reminderId}.`);
+      }
+    } else if (notificationType === 'hourly' && !this.dailyStatusService.isCompletedToday(reminderId)) {
+      if (!reminder.enabled) {
+        console.log(`Hourly: Reminder ${reminderId} is disabled. Not scheduling next.`);
+        return;
+      }
+
+      const now = new Date();
+      let nextHour = (data.hourOfDay || now.getHours()) + 1;
+
+      if (nextHour < 23) {
+        const numericIdForHourly = this.reminderService.getNumericId(`${reminderId}-hourly-${nextHour}`);
+        const hourlyNotif: ILocalNotification = {
+          id: numericIdForHourly,
+          title: reminder.text,
+          text: `Recordatorio Horario (${nextHour}:00)`,
+          trigger: { at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), nextHour, 0, 0) },
+          data: {
+            reminderId: reminder.id,
+            type: 'hourly',
+            originalTime: reminder.time,
+            hourOfDay: nextHour
+          },
+          foreground: true,
+        };
+
+        // This logic is now only for Cordova
+        console.log('Cordova: Scheduling next subsequent hourly notification:', JSON.stringify(hourlyNotif));
+        try { await this.localNotifications.cancel(hourlyNotif.id); } catch (e) {}
+        await this.localNotifications.schedule(hourlyNotif);
       } else {
          console.log(`Next hour (${nextHour}) is too late, not scheduling next hourly for reminder ${reminderId}.`);
       }
