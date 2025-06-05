@@ -65,7 +65,7 @@ export class ReminderService {
     }
   }
 
-  private getNumericId(idPart: string): number {
+  public getNumericId(idPart: string): number { // Changed to public
     let hash = 0;
     for (let i = 0; i < idPart.length; i++) {
       const char = idPart.charCodeAt(i);
@@ -76,10 +76,40 @@ export class ReminderService {
   }
 
   async scheduleNotification(reminder: Reminder) {
-    if (!this.platform.is('cordova') || !reminder.enabled) {
-      console.log('Cannot schedule notification: Not on Cordova or reminder disabled.', reminder.text);
+    if (!reminder.enabled) {
+      console.log(`Reminder "${reminder.text}" is disabled. No notifications will be scheduled.`);
       return;
     }
+
+    if (!this.platform.is('cordova')) {
+      const [hour, minute] = reminder.time.split(':').map(Number); // For alert display
+      if (reminder.frequency === 'daily') {
+        const numericId = this.getNumericId(reminder.id);
+        alert(`[WEB SIM] Programar Notificación:
+ID: ${numericId}
+Texto: ${reminder.text}
+Hora: ${reminder.time}
+Tipo: initial
+Frecuencia: Diario`);
+      } else if (reminder.frequency === 'weekly' && reminder.daysOfWeek && reminder.daysOfWeek.length > 0) {
+        for (const day of reminder.daysOfWeek) {
+          const uniqueIdPartForDay = `${reminder.id.substring(0, 8)}-${day}`;
+          const numericIdForDay = this.getNumericId(uniqueIdPartForDay);
+          alert(`[WEB SIM] Programar Notificación:
+ID: ${numericIdForDay}
+Texto: ${reminder.text}
+Hora: ${reminder.time}
+Día Semana (plugin): ${day + 1}
+Tipo: initial
+Frecuencia: Semanal`);
+        }
+      } else {
+        console.warn('[WEB SIM] Could not determine notification schedule for:', JSON.stringify(reminder));
+      }
+      return;
+    }
+
+    // Cordova-specific logic continues if platform.is('cordova')
     if (!reminder.time || !reminder.time.includes(':')) {
         console.error('Invalid time for reminder, cannot schedule:', JSON.stringify(reminder));
         return;
@@ -159,9 +189,25 @@ export class ReminderService {
 
   async cancelNotification(reminder: Reminder) {
     if (!this.platform.is('cordova')) {
-        console.log('Not on Cordova, cannot cancel notifications.');
-        return;
+      let message = '';
+      if (reminder.frequency === 'daily') {
+        message = `[WEB SIM] Cancelar Notificación (Diaria):
+ID: ${this.getNumericId(reminder.id)}
+Texto: ${reminder.text}`;
+      } else if (reminder.frequency === 'weekly' && reminder.daysOfWeek && reminder.daysOfWeek.length > 0) {
+        const idsToCancel = reminder.daysOfWeek.map(day => this.getNumericId(`${reminder.id.substring(0, 8)}-${day}`));
+        message = `[WEB SIM] Cancelar Notificaciones (Semanal):
+IDs: ${idsToCancel.join(', ')}
+Texto: ${reminder.text}`;
+      } else {
+        message = `[WEB SIM] Cancelar Notificación (Frecuencia desconocida o sin días):
+Texto: ${reminder.text}`;
+      }
+      alert(message);
+      return;
     }
+
+    // Cordova-specific logic
     console.log('Attempting to cancel notifications for reminder:', reminder.text, reminder.id);
     if (reminder.frequency === 'daily') {
         const numericId = this.getNumericId(reminder.id);
@@ -255,5 +301,36 @@ export class ReminderService {
       return !!(reminder.daysOfWeek && reminder.daysOfWeek.includes(todayDay));
     }
     return false;
+  }
+
+  async cancelHourlyNotificationsForToday(reminderId: string): Promise<void> {
+    if (!this.platform.is('cordova')) {
+      const reminder = this.reminders.find(r => r.id === reminderId);
+      const reminderText = reminder ? reminder.text : reminderId;
+      alert(`[WEB SIM] Cancelar Notificaciones Horarias (Hoy):
+Para Recordatorio: ${reminderText}`);
+      return;
+    }
+
+    console.log(`Cordova: Attempting to cancel hourly notifications for today for reminder ID: ${reminderId}`);
+    // TODO: Implement actual Cordova logic to cancel multiple hourly notifications
+    // This would involve:
+    // 1. Determining the range of hours for "today" or relevant upcoming hours.
+    // 2. Looping through these hours.
+    // 3. Generating the specific numeric ID for each hourly notification, e.g., this.getNumericId(`${reminderId}-hourly-${hour}`).
+    // 4. Calling await this.localNotifications.cancel(hourlyNumericId); for each.
+    // Example:
+    // const currentHour = new Date().getHours();
+    // for (let hour = currentHour; hour < 24; hour++) {
+    //   const hourlyNumericId = this.getNumericId(`${reminderId}-hourly-${hour}`);
+    //   try {
+    //     await this.localNotifications.cancel(hourlyNumericId);
+    //     console.log(`Cancelled hourly notification ID ${hourlyNumericId} for hour ${hour}`);
+    //   } catch (e) {
+    //     // console.warn(`Could not cancel hourly notification ID ${hourlyNumericId} for hour ${hour}`, e);
+    //   }
+    // }
+    // For now, as per subtask, only the web fallback is implemented.
+    return Promise.resolve();
   }
 }
