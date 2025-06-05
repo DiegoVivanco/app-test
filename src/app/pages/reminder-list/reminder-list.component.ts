@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Reminder } from '../../models/reminder.model';
 import { ReminderService } from '../../services/reminder.service';
 import { CommonModule } from '@angular/common';
-import { IonicModule, NavController } from '@ionic/angular';
+import { IonicModule, NavController, AlertController } from '@ionic/angular'; // Import AlertController
 import { FormsModule } from '@angular/forms'; // Required for standalone components using ngModel, etc.
 
 @Component({
@@ -17,7 +17,8 @@ export class ReminderListPage implements OnInit { // Class name is ReminderListP
 
   constructor(
     private reminderService: ReminderService,
-    private navCtrl: NavController
+    private navCtrl: NavController,
+    private alertCtrl: AlertController // Inject AlertController
   ) { }
 
   ngOnInit() {
@@ -70,5 +71,40 @@ export class ReminderListPage implements OnInit { // Class name is ReminderListP
       return 'Semanal (Lunes a Viernes)';
     }
     return 'Frecuencia no establecida';
+  }
+
+  async confirmDeleteReminder(reminderId: string, reminderText: string) {
+    const alert = await this.alertCtrl.create({
+      header: 'Confirmar Eliminación',
+      message: `¿Estás seguro de que quieres eliminar el recordatorio "${reminderText}"? Esta acción no se puede deshacer.`,
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel',
+          cssClass: 'secondary',
+          handler: () => {
+            // console.log('Eliminación cancelada');
+          }
+        }, {
+          text: 'Eliminar',
+          cssClass: 'danger',
+          handler: async () => {
+            try {
+              await this.reminderService.deleteReminder(reminderId);
+              await this.loadReminders(); // Refresh the list
+            } catch (error) {
+              console.error('Error al eliminar el recordatorio:', error);
+              const errorAlert = await this.alertCtrl.create({
+                  header: 'Error',
+                  message: 'No se pudo eliminar el recordatorio. Inténtalo de nuevo.',
+                  buttons: ['OK']
+              });
+              await errorAlert.present();
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 }
