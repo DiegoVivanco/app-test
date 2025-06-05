@@ -100,7 +100,7 @@ export class ReminderService {
           every: { hour, minute }, // For daily, this means every day at this hour and minute
           count: 9999, // Effectively repeat indefinitely
         },
-        data: { reminderId: reminder.id },
+        data: { reminderId: reminder.id, type: 'initial' }, // Added type: 'initial'
         foreground: true
       };
       this.localNotifications.schedule(notification);
@@ -124,7 +124,7 @@ export class ReminderService {
                                                 // Our daysOfWeekOptions is 0 for Sunday, 1 for Monday. So, we need to adjust.
             count: 9999
           },
-          data: { reminderId: reminder.id, weekday: day + 1 }, // Store original day if needed
+          data: { reminderId: reminder.id, weekday: day + 1, type: 'initial' }, // Added type: 'initial'
           foreground: true
         };
         // Adjust day for plugin: daysOfWeek is 0 (Sun) to 6 (Sat). Plugin expects 1 (Sun) to 7 (Sat).

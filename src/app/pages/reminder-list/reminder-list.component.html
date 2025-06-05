@@ -18,9 +18,16 @@
           <p>Hora: {{ reminder.time }}</p>
           <p>Frecuencia: {{ getFrequencyText(reminder) }}</p>
           <p>Estado: {{ reminder.enabled ? 'Activado' : 'Desactivado' }}</p>
+          <div *ngIf="isCompletedToday(reminder.id)" style="color: var(--ion-color-success); font-weight: bold; margin-top: 4px;">
+            <ion-icon name="checkmark-done-circle-outline"></ion-icon> Completado Hoy
+          </div>
         </ion-label>
+
         <ion-buttons slot="end">
-          <ion-button (click)="goToEditReminderPage(reminder.id)">
+          <ion-button *ngIf="!isCompletedToday(reminder.id)" (click)="toggleCompletionToday(reminder)" fill="clear" title="Marcar como completado hoy">
+            <ion-icon slot="icon-only" name="checkmark-circle-outline" color="success"></ion-icon>
+          </ion-button>
+          <ion-button (click)="goToEditReminderPage(reminder.id)" fill="clear" title="Editar Recordatorio">
             <ion-icon slot="icon-only" name="create-outline"></ion-icon>
           </ion-button>
         </ion-buttons>

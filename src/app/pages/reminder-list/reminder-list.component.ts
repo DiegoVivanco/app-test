@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { Reminder } from '../../models/reminder.model';
 import { ReminderService } from '../../services/reminder.service';
+import { DailyStatusService } from '../../services/daily-status.service'; // Import DailyStatusService
 import { CommonModule } from '@angular/common';
-import { IonicModule, NavController, AlertController } from '@ionic/angular'; // Import AlertController
-import { FormsModule } from '@angular/forms'; // Required for standalone components using ngModel, etc.
+import { IonicModule, NavController, AlertController } from '@ionic/angular';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-reminder-list',
@@ -12,22 +13,26 @@ import { FormsModule } from '@angular/forms'; // Required for standalone compone
   standalone: true,
   imports: [IonicModule, CommonModule, FormsModule]
 })
-export class ReminderListPage implements OnInit { // Class name is ReminderListPage as per instructions
+export class ReminderListPage implements OnInit {
   reminders: Reminder[] = [];
+  public completedTodayKeys: string[] = []; // Property to store completed keys
 
   constructor(
     private reminderService: ReminderService,
     private navCtrl: NavController,
-    private alertCtrl: AlertController // Inject AlertController
+    private alertCtrl: AlertController,
+    private dailyStatusService: DailyStatusService // Inject DailyStatusService
   ) { }
 
   ngOnInit() {
-    this.loadReminders();
+    // loadReminders is called in ionViewWillEnter, which is usually sufficient
   }
 
-  ionViewWillEnter() {
+  async ionViewWillEnter() {
     // Refresh reminders when the page is about to be entered
-    this.loadReminders();
+    await this.loadReminders();
+    this.completedTodayKeys = this.dailyStatusService.getCompletedTodayKeys();
+    console.log('Updated completedTodayKeys:', this.completedTodayKeys);
   }
 
   async loadReminders() {
@@ -71,6 +76,22 @@ export class ReminderListPage implements OnInit { // Class name is ReminderListP
       return 'Semanal (Lunes a Viernes)';
     }
     return 'Frecuencia no establecida';
+  }
+
+  isCompletedToday(reminderId: string): boolean {
+    return this.completedTodayKeys.includes(reminderId);
+  }
+
+  async toggleCompletionToday(reminder: Reminder) {
+    if (this.isCompletedToday(reminder.id)) {
+      // Currently, we don't un-mark. If needed, logic would go here.
+      console.log(`Reminder ${reminder.id} is already marked as completed today.`);
+      return;
+    }
+    this.dailyStatusService.markAsCompletedToday(reminder.id);
+    this.completedTodayKeys = this.dailyStatusService.getCompletedTodayKeys(); // Refresh keys
+    console.log(`Marked ${reminder.id} as completed. New keys:`, this.completedTodayKeys);
+    // TODO: Call ReminderService to cancel hourly notifications for reminder.id for today
   }
 
   async confirmDeleteReminder(reminderId: string, reminderText: string) {

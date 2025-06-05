@@ -2,7 +2,8 @@ import { Component } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { RouterModule } from '@angular/router';
 import { Platform } from '@ionic/angular';
-import { ReminderService } from './services/reminder.service'; // Ensure path is correct
+import { ReminderService } from './services/reminder.service';
+import { DailyStatusService } from './services/daily-status.service'; // Import DailyStatusService
 
 @Component({
   selector: 'app-root',
@@ -16,7 +17,8 @@ import { ReminderService } from './services/reminder.service'; // Ensure path is
 export class AppComponent {
   constructor(
     private platform: Platform,
-    private reminderService: ReminderService
+    private reminderService: ReminderService,
+    private dailyStatusService: DailyStatusService // Inject DailyStatusService
   ) {
     this.initializeApp();
   }
@@ -24,8 +26,9 @@ export class AppComponent {
   initializeApp() {
     this.platform.ready().then(() => {
       console.log('Platform is ready in AppComponent.');
-      // No need to check platform.is('cordova') here, ReminderService will do it.
-      // ReminderService's initializeNotifications will handle platform checks.
+      this.dailyStatusService.clearOldCompletedStatuses(); // Clear old statuses
+      console.log('Old daily completion statuses cleared on app startup.');
+      // ReminderService's initializeNotifications will handle its own platform checks.
       this.reminderService.initializeNotifications();
     });
   }
