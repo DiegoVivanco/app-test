@@ -29,22 +29,30 @@ export class ReminderService {
   async initializeNotifications() {
     await this.platform.ready();
     console.log('Platform ready in ReminderService. Initializing notifications.');
-    if (!this.platform.is('cordova')) {
-        console.log('Not on Cordova, skipping notification scheduling logic.');
-        return;
-    }
-    const hasPermission = await this.checkPermissions();
-    if (hasPermission) {
-      console.log('Notification permissions granted. Scheduling all notifications.');
-      await this.scheduleAllNotifications();
+
+    if (this.platform.is('cordova')) {
+      const hasPermission = await this.checkPermissions(); // Only check permissions on Cordova
+      if (hasPermission) {
+        console.log('Notification permissions granted. Scheduling all notifications for Cordova.');
+        await this.scheduleAllNotifications();
+      } else {
+        console.warn('Notification permissions not granted. Cannot schedule notifications for Cordova.');
+        // Optionally, one might still call scheduleAllNotifications() here if alerts are desired
+        // even if Cordova permissions failed, but current web sim logic is in scheduleNotification itself.
+        // For now, if Cordova permissions fail, we don't proceed to schedule (neither real nor simulated).
+      }
     } else {
-      console.warn('Notification permissions not granted. Cannot schedule notifications.');
+      // Web mode: no permissions needed for alerts, simulate scheduling.
+      console.log('Not on Cordova. Simulating scheduling all notifications with alerts.');
+      await this.scheduleAllNotifications(); // This will now trigger alerts via scheduleNotification
     }
   }
 
   private async checkPermissions(): Promise<boolean> {
+    // This method is now only called if platform.is('cordova') is true.
+    // The initial check within this method is redundant but harmless.
     if (!this.platform.is('cordova')) {
-      console.log('Not on Cordova, skipping permission check.');
+      console.warn('checkPermissions called unnecessarily for non-Cordova environment.'); // Should not happen
       return false;
     }
     try {
@@ -171,11 +179,9 @@ Frecuencia: Semanal`);
   }
 
   async scheduleAllNotifications() {
-    if (!this.platform.is('cordova')) {
-        console.log('Not on Cordova, cannot schedule all notifications.');
-        return;
-    }
-    console.log('Scheduling all enabled notifications...');
+    // The platform check is now primarily in initializeNotifications for initial scheduling.
+    // scheduleNotification itself will handle alerts for web, or actual scheduling for Cordova.
+    console.log('Attempting to schedule all notifications (platform-dependent behavior in scheduleNotification)...');
     const reminders = await this.getReminders();
     for (const reminder of reminders) {
       if (reminder.enabled) {
@@ -306,9 +312,28 @@ Texto: ${reminder.text}`;
   async cancelHourlyNotificationsForToday(reminderId: string): Promise<void> {
     if (!this.platform.is('cordova')) {
       const reminder = this.reminders.find(r => r.id === reminderId);
-      const reminderText = reminder ? reminder.text : reminderId;
+      const reminderText = reminder ? `"${reminder.text}"` : `ID: ${reminderId}`;
+      let hourlyIdsInfo = "";
+
+      // We can only list potential IDs if we know the reminder exists
+      // and to determine which hours to list (e.g., from current hour to end of day).
+      // This example lists potential IDs for remaining hours of the current day.
+      const currentHour = new Date().getHours();
+      const potentialIds = [];
+      for (let hour = currentHour; hour < 24; hour++) {
+          potentialIds.push(this.getNumericId(`${reminderId}-hourly-${hour}`));
+      }
+
+      if (potentialIds.length > 0) {
+        hourlyIdsInfo = `
+IDs Horarios Potenciales (simulados): ${potentialIds.join(', ')}`;
+      } else {
+        hourlyIdsInfo = `
+(No hay más horas hoy para simular cancelación de IDs horarios)`;
+      }
+
       alert(`[WEB SIM] Cancelar Notificaciones Horarias (Hoy):
-Para Recordatorio: ${reminderText}`);
+Para Recordatorio: ${reminderText}${hourlyIdsInfo}`);
       return;
     }
 
