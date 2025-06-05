@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "app": {
+    "app-test": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -74,10 +74,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "app:build:production"
+              "buildTarget": "app-test:build:production"
             },
             "development": {
-              "buildTarget": "app:build:development"
+              "buildTarget": "app-test:build:development"
             },
             "ci": {
               "progress": false
@@ -88,7 +88,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "buildTarget": "app:build"
+            "buildTarget": "app-test:build"
           }
         },
         "test": {
@@ -136,7 +136,8 @@
   "cli": {
     "schematicCollections": [
       "@ionic/angular-toolkit"
-    ]
+    ],
+    "analytics": "5d27e34b-2b67-4155-9c6f-4acb51e7089e"
   },
   "schematics": {
     "@ionic/angular-toolkit:component": {

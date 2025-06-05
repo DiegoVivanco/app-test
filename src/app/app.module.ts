@@ -8,7 +8,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { LocalNotifications } from '@ionic-native/local-notifications/ngx';
 
 @NgModule({
-  declarations: [AppComponent],
+  declarations: [],
   imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule],
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },

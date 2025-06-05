@@ -61,10 +61,10 @@ export class ReminderAddPage implements OnInit { // Class name as per instructio
         frequency: reminder.frequency,
       });
       if (reminder.daysOfWeek) {
-        this.daysOfWeekOptions.forEach(opt => opt.isChecked = reminder.daysOfWeek!.includes(opt.val));
+        this.daysOfWeekOptions.forEach((opt:any) => opt.isChecked = reminder.daysOfWeek!.includes(opt.val));
       }
       if (reminder.optionalDays) {
-        this.optionalDaysOptions.forEach(opt => opt.isChecked = reminder.optionalDays!.includes(opt.val));
+        this.optionalDaysOptions.forEach((opt:any) => opt.isChecked = reminder.optionalDays!.includes(opt.val));
       }
     }
   }
@@ -75,8 +75,8 @@ export class ReminderAddPage implements OnInit { // Class name as per instructio
     }
 
     const formValues = this.reminderForm.value;
-    const selectedDaysOfWeek = this.daysOfWeekOptions.filter(opt => opt.isChecked).map(opt => opt.val);
-    const selectedOptionalDays = this.optionalDaysOptions.filter(opt => opt.isChecked).map(opt => opt.val);
+    const selectedDaysOfWeek = this.daysOfWeekOptions.filter((opt:any) => opt.isChecked).map((opt:any) => opt.val);
+    const selectedOptionalDays = this.optionalDaysOptions.filter((opt:any) => opt.isChecked).map((opt:any) => opt.val);
 
     const reminderData: Omit<Reminder, 'id' | 'enabled'> = {
       text: formValues.text,

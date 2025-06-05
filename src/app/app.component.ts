@@ -1,9 +1,15 @@
 import { Component } from '@angular/core';
+import { IonicModule } from '@ionic/angular';
+import { RouterModule } from '@angular/router';
 import { Platform } from '@ionic/angular';
 import { ReminderService } from './services/reminder.service'; // Ensure path is correct
 
 @Component({
   selector: 'app-root',
+  imports: [
+    IonicModule,
+    RouterModule
+  ],
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
 })

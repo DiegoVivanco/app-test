@@ -1,0 +1,9 @@
+{
+  "name": "app-test",
+  "type": "angular",
+  "integrations": {},
+  "serve": {
+    "host": "localhost",
+    "port": 8101
+  }
+}
