@@ -17,29 +17,26 @@
       <ion-label position="floating">Hora (e.g., 09:00)</ion-label>
       <ion-input formControlName="time" type="time"></ion-input>
     </ion-item>
-    <ion-item>
+
+    <ion-list-header>
       <ion-label>Frecuencia</ion-label>
-      <ion-select formControlName="frequency" interface="popover">
-        <ion-select-option value="daily">Diario</ion-select-option>
-        <ion-select-option value="weekly">Semanal</ion-select-option>
-      </ion-select>
-    </ion-item>
+    </ion-list-header>
+    <ion-radio-group formControlName="frequency">
+      <ion-item>
+        <ion-label>Diario</ion-label>
+        <ion-radio value="daily" slot="start"></ion-radio>
+      </ion-item>
+      <ion-item>
+        <ion-label>Semanal</ion-label>
+        <ion-radio value="weekly" slot="start"></ion-radio>
+      </ion-item>
+    </ion-radio-group>
 
     <div *ngIf="reminderForm.get('frequency')?.value === 'weekly' || reminderForm.get('frequency')?.value === 'daily'">
       <ion-list-header>
         <ion-label>Días Activos de la Semana (para Semanal, o Diario específico)</ion-label>
       </ion-list-header>
       <ion-item *ngFor="let day of daysOfWeekOptions">
-        <ion-label>{{day.name}}</ion-label>
-        <ion-checkbox slot="end" [(ngModel)]="day.isChecked" [ngModelOptions]="{standalone: true}"></ion-checkbox>
-      </ion-item>
-    </div>
-
-    <div>
-      <ion-list-header>
-        <ion-label>Días Opcionales (e.g., omitir en estos días)</ion-label>
-      </ion-list-header>
-      <ion-item *ngFor="let day of optionalDaysOptions">
         <ion-label>{{day.name}}</ion-label>
         <ion-checkbox slot="end" [(ngModel)]="day.isChecked" [ngModelOptions]="{standalone: true}"></ion-checkbox>
       </ion-item>

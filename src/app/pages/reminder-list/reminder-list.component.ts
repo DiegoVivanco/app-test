@@ -44,23 +44,30 @@ export class ReminderListPage implements OnInit { // Class name is ReminderListP
   }
 
   getFrequencyText(reminder: Reminder): string {
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
     if (reminder.frequency === 'daily') {
-      let text = 'Diario';
-      if (reminder.daysOfWeek && reminder.daysOfWeek.length < 7 && reminder.daysOfWeek.length > 0) {
-        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-        text += ` (${reminder.daysOfWeek.map(d => dayNames[d]).join(', ')})`;
-      }
-      if (reminder.optionalDays && reminder.optionalDays.length > 0) {
-        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-        text += ` (Opcional en ${reminder.optionalDays.map(d => dayNames[d]).join(', ')})`;
-      }
-      return text;
-    } else if (reminder.frequency === 'weekly') {
       if (reminder.daysOfWeek && reminder.daysOfWeek.length > 0) {
-        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-        return `Semanalmente los ${reminder.daysOfWeek.map(d => dayNames[d]).join(', ')}`;
+        const selectedDayNames = reminder.daysOfWeek.map(d => dayNames[d]).join(', ');
+        return `Diario (Días: ${selectedDayNames})`;
       }
-      return 'Semanal (días específicos no establecidos)';
+      return 'Diario';
+    } else if (reminder.frequency === 'weekly') {
+      // Check if daysOfWeek represents Mon-Fri
+      const isMonToFri = reminder.daysOfWeek &&
+                         reminder.daysOfWeek.length === 5 &&
+                         reminder.daysOfWeek.every((day, index) => day === index + 1);
+
+      if (isMonToFri) {
+        return 'Semanal (Lunes a Viernes)';
+      } else if (reminder.daysOfWeek && reminder.daysOfWeek.length > 0) {
+        // If daysOfWeek is present but not strictly Mon-Fri (e.g., legacy data or future changes)
+        const selectedDayNames = reminder.daysOfWeek.map(d => dayNames[d]).join(', ');
+        return `Semanal (Días: ${selectedDayNames})`;
+      }
+      // Fallback for 'weekly' if daysOfWeek is empty or doesn't match known patterns,
+      // still implies Mon-Fri as per current app logic for new reminders.
+      return 'Semanal (Lunes a Viernes)';
     }
     return 'Frecuencia no establecida';
   }

@@ -21,7 +21,7 @@ export class ReminderService {
         text: 'Tomar creatina (Ejemplo)',
         frequency: 'daily',
         time: '08:00',
-        optionalDays: [0, 6], // Sunday, Saturday
+        // optionalDays: [0, 6], // Sunday, Saturday // REMOVED
         enabled: true
     });
   }
@@ -248,10 +248,8 @@ export class ReminderService {
       if (reminder.daysOfWeek && reminder.daysOfWeek.length > 0 && !reminder.daysOfWeek.includes(todayDay)) {
         return false; // Not active on this specific day
       }
-      // Optional days are for *not* showing a notification, but it's still "due" in a broader sense.
-      // The notification scheduling logic should handle optionalDays by not scheduling them,
-      // or by scheduling them with a different flag if the plugin supports it.
       // For this function, if it's a daily reminder and not excluded by daysOfWeek, it's due.
+      // Or if no daysOfWeek are specified at all for daily, it's also due.
       return true;
     } else if (reminder.frequency === 'weekly') {
       return !!(reminder.daysOfWeek && reminder.daysOfWeek.includes(todayDay));

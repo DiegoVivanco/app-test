@@ -26,7 +26,6 @@ export class ReminderAddPage implements OnInit { // Class name as per instructio
     { val: 5, name: 'Viernes', isChecked: false },
     { val: 6, name: 'Sábado', isChecked: false }
   ];
-  optionalDaysOptions = JSON.parse(JSON.stringify(this.daysOfWeekOptions)); // Deep copy
 
   constructor(
     private fb: FormBuilder,
@@ -37,13 +36,23 @@ export class ReminderAddPage implements OnInit { // Class name as per instructio
     this.reminderForm = this.fb.group({
       text: ['', Validators.required],
       time: ['', Validators.required],
-      frequency: ['daily', Validators.required],
+      frequency: ['weekly', Validators.required], // Default to weekly
       // daysOfWeek will be populated based on checkboxes
       // optionalDays will be populated based on checkboxes
+    });
+
+    // Subscribe to frequency changes
+    this.reminderForm.get('frequency')?.valueChanges.subscribe(frequencyValue => {
+      this.updateDaysOfWeekForFrequency(frequencyValue);
     });
   }
 
   ngOnInit() {
+    // Set initial default days for 'weekly' frequency
+    if (!this.isEditMode) { // Only apply default for new reminders
+      this.updateDaysOfWeekForFrequency('weekly');
+    }
+
     this.reminderId = this.route.snapshot.paramMap.get('id');
     if (this.reminderId) {
       this.isEditMode = true;
@@ -51,21 +60,44 @@ export class ReminderAddPage implements OnInit { // Class name as per instructio
     }
   }
 
+  updateDaysOfWeekForFrequency(frequencyValue: string) {
+    if (frequencyValue === 'weekly') {
+      this.daysOfWeekOptions.forEach(opt => {
+        // Monday to Friday (1-5)
+        opt.isChecked = opt.val >= 1 && opt.val <= 5;
+      });
+    } else if (frequencyValue === 'daily') {
+      this.daysOfWeekOptions.forEach(opt => {
+        opt.isChecked = false; // Uncheck all for daily
+      });
+    }
+  }
+
   async loadReminderData(id: string) {
-    const reminders = await this.reminderService.getReminders(); // In a real app, getReminderById(id)
+    const reminders = await this.reminderService.getReminders();
     const reminder = reminders.find(r => r.id === id);
     if (reminder) {
       this.reminderForm.patchValue({
         text: reminder.text,
         time: reminder.time,
-        frequency: reminder.frequency,
+        frequency: reminder.frequency, // This will trigger valueChanges if different from current
       });
-      if (reminder.daysOfWeek) {
-        this.daysOfWeekOptions.forEach((opt:any) => opt.isChecked = reminder.daysOfWeek!.includes(opt.val));
+
+      // Critically, ensure loaded reminder's daysOfWeek take precedence
+      if (reminder.daysOfWeek && reminder.daysOfWeek.length > 0) {
+        this.daysOfWeekOptions.forEach(opt => {
+          opt.isChecked = reminder.daysOfWeek!.includes(opt.val);
+        });
+      } else if (reminder.frequency === 'daily') { // If daily and no specific days, ensure all are unchecked
+        this.daysOfWeekOptions.forEach(opt => {
+          opt.isChecked = false;
+        });
       }
-      if (reminder.optionalDays) {
-        this.optionalDaysOptions.forEach((opt:any) => opt.isChecked = reminder.optionalDays!.includes(opt.val));
-      }
+      // Note: if frequency was weekly but no daysOfWeek were saved, it might default to Mon-Fri
+      // due to valueChanges. If the desired behavior is to have no days checked if reminder.daysOfWeek is empty
+      // even for weekly, then an explicit else if (reminder.frequency === 'weekly' && (!reminder.daysOfWeek || reminder.daysOfWeek.length === 0))
+      // would be needed here to uncheck all. For now, assume default Mon-Fri is acceptable if daysOfWeek is empty for weekly.
+
     }
   }
 
@@ -76,14 +108,12 @@ export class ReminderAddPage implements OnInit { // Class name as per instructio
 
     const formValues = this.reminderForm.value;
     const selectedDaysOfWeek = this.daysOfWeekOptions.filter((opt:any) => opt.isChecked).map((opt:any) => opt.val);
-    const selectedOptionalDays = this.optionalDaysOptions.filter((opt:any) => opt.isChecked).map((opt:any) => opt.val);
 
     const reminderData: Omit<Reminder, 'id' | 'enabled'> = {
       text: formValues.text,
       time: formValues.time,
       frequency: formValues.frequency,
       daysOfWeek: selectedDaysOfWeek.length > 0 ? selectedDaysOfWeek : undefined,
-      optionalDays: selectedOptionalDays.length > 0 ? selectedOptionalDays : undefined,
     };
 
     if (this.isEditMode && this.reminderId) {
