@@ -16,16 +16,12 @@ export class ReminderService {
   ) {
     // Initialize with a sample reminder for testing (as per original service)
     // This will be scheduled if on Cordova platform when initializeNotifications is called
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + 2);
-    const hour = now.getHours().toString().padStart(1, '0');
-    const minute = now.getMinutes().toString().padStart(1, '00');
     this.reminders.push({
         id: uuidv4(),
         text: 'Tomar creatina (Ejemplo)',
-        frequency: 'weekly',
-        daysOfWeek: [0, 1, 2, 3, 4, 5, 6], // Todos los días de la semana
-        time: `${hour}:${minute}`,
+        frequency: 'daily',
+        time: '08:00',
+        // optionalDays: [0, 6], // Sunday, Saturday // REMOVED
         enabled: true
     });
   }
@@ -104,17 +100,18 @@ Hora: ${reminder.time}
 Tipo: initial
 Frecuencia: Diario`);
       } else if (reminder.frequency === 'weekly' && reminder.daysOfWeek && reminder.daysOfWeek.length > 0) {
-        for (const day of reminder.daysOfWeek) {
-          const uniqueIdPartForDay = `${reminder.id.substring(0, 8)}-${day}`;
-          const numericIdForDay = this.getNumericId(uniqueIdPartForDay);
-          alert(`[WEB SIM] Programar Notificación:
-ID: ${numericIdForDay}
+        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']; // Spanish day names
+        const scheduledDays = reminder.daysOfWeek.map(d => dayNames[d]).join(', ');
+        const baseNumericId = this.getNumericId(reminder.id); // For informational purpose
+
+        alert(`[WEB SIM] Programación Semanal Registrada:
+ID Base (informativo): ${baseNumericId}
 Texto: ${reminder.text}
 Hora: ${reminder.time}
-Día Semana (plugin): ${day + 1}
+Días Programados: ${scheduledDays}
 Tipo: initial
-Frecuencia: Semanal`);
-        }
+Frecuencia: Semanal
+(Nota: La notificación real solo sonaría en los días y hora especificados)`);
       } else {
         console.warn('[WEB SIM] Could not determine notification schedule for:', JSON.stringify(reminder));
       }
@@ -292,6 +289,10 @@ Texto: ${reminder.text}`;
   async getReminders(): Promise<Reminder[]> {
     // console.log('Getting reminders from service:', this.reminders); // For debugging
     return [...this.reminders]; // Return a copy
+  }
+
+  public getReminderById(id: string): Reminder | undefined {
+    return this.reminders.find(r => r.id === id);
   }
 
   // isReminderDue is not directly related to notifications but part of the service's public API

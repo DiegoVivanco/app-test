@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { IonicModule, Platform } from '@ionic/angular';
-import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ReminderService } from './services/reminder.service';
 import { DailyStatusService } from './services/daily-status.service';
@@ -9,7 +8,6 @@ import { LocalNotifications, ILocalNotification } from '@ionic-native/local-noti
 @Component({
   selector: 'app-root',
   imports: [
-    CommonModule,
     IonicModule,
     RouterModule
   ],
@@ -17,7 +15,7 @@ import { LocalNotifications, ILocalNotification } from '@ionic-native/local-noti
   styleUrls: ['app.component.scss'],
 })
 export class AppComponent {
-  public isCordova: boolean = false; // For template access
+  public isCordova: boolean; // For template access
 
   constructor(
     private platform: Platform,
@@ -83,11 +81,41 @@ export class AppComponent {
       return;
     }
 
+    const reminder = await this.reminderService.getReminderById(reminderId); // Use getReminderById
+
+    if (!reminder) {
+      console.warn(`[WEB SIM] Recordatorio con ID ${reminderId} no encontrado en handleNotificationTrigger.`);
+      return;
+    }
+
+    // Active day check for 'initial' type simulations in web mode
+    if (notificationType === 'initial' && !this.platform.is('cordova')) {
+      const now = new Date();
+      const currentDayOfWeek = now.getDay(); // 0 for Sunday, 1 for Monday...
+      let isDueToday = false;
+      const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']; // Local day names
+
+      if (reminder.frequency === 'daily') {
+        isDueToday = (!reminder.daysOfWeek || reminder.daysOfWeek.length === 0 || reminder.daysOfWeek.includes(currentDayOfWeek));
+      } else if (reminder.frequency === 'weekly') {
+        isDueToday = reminder.daysOfWeek ? reminder.daysOfWeek.includes(currentDayOfWeek) : false;
+      }
+
+      if (!isDueToday) {
+        const reminderDays = reminder.daysOfWeek ? reminder.daysOfWeek.map(d => dayNames[d]).join(', ') : 'No especificado';
+        alert(`[WEB SIM] Notificación Inicial Ignorada (Simulada):
+Recordatorio: "${reminder.text}"
+Programado para: ${reminder.frequency === 'weekly' ? 'Semanalmente los ' + reminderDays : 'Diariamente'} a las ${reminder.time}.
+Hoy (${dayNames[currentDayOfWeek]}) no es un día activo.`);
+        return; // Stop processing this simulated trigger
+      }
+    }
+
     // If an 'initial' notification is triggered and not yet completed today, schedule the first hourly.
+    // This check now also implicitly benefits from the 'reminder' object being available.
     if (notificationType === 'initial' && !this.dailyStatusService.isCompletedToday(reminderId)) {
-      const reminder = (await this.reminderService.getReminders()).find(r => r.id === reminderId);
-      if (!reminder || !reminder.enabled) {
-        console.log(`Reminder ${reminderId} not found or is disabled. Not scheduling hourly.`);
+      if (!reminder.enabled) { // Reminder object is already fetched
+        console.log(`Reminder ${reminderId} is disabled. Not scheduling hourly.`);
         return;
       }
 
@@ -137,10 +165,10 @@ Tipo: hourly`);
         console.log(`Next hour (${nextHour}) is too late, not scheduling next hourly for reminder ${reminderId}.`);
       }
     } else if (notificationType === 'hourly' && !this.dailyStatusService.isCompletedToday(reminderId)) {
-      // Logic for subsequent hourly notifications (if initial one was also 'hourly' type, or chained from 'hourly')
-      const reminder = (await this.reminderService.getReminders()).find(r => r.id === reminderId);
-      if (!reminder || !reminder.enabled) {
-        console.log(`Hourly: Reminder ${reminderId} not found or is disabled. Not scheduling next.`);
+      // Logic for subsequent hourly notifications
+      // Reminder object is already fetched and known to exist from the top of the function.
+      if (!reminder.enabled) {
+        console.log(`Hourly: Reminder ${reminderId} is disabled. Not scheduling next.`);
         return;
       }
 
