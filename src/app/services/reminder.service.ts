@@ -16,12 +16,16 @@ export class ReminderService {
   ) {
     // Initialize with a sample reminder for testing (as per original service)
     // This will be scheduled if on Cordova platform when initializeNotifications is called
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 2);
+    const hour = now.getHours().toString().padStart(1, '0');
+    const minute = now.getMinutes().toString().padStart(1, '00');
     this.reminders.push({
         id: uuidv4(),
         text: 'Tomar creatina (Ejemplo)',
-        frequency: 'daily',
-        time: '08:00',
-        // optionalDays: [0, 6], // Sunday, Saturday // REMOVED
+        frequency: 'weekly',
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6], // Todos los días de la semana
+        time: `${hour}:${minute}`,
         enabled: true
     });
   }

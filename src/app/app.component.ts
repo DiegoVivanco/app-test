@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { IonicModule, Platform } from '@ionic/angular';
+import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ReminderService } from './services/reminder.service';
 import { DailyStatusService } from './services/daily-status.service';
@@ -8,6 +9,7 @@ import { LocalNotifications, ILocalNotification } from '@ionic-native/local-noti
 @Component({
   selector: 'app-root',
   imports: [
+    CommonModule,
     IonicModule,
     RouterModule
   ],
@@ -15,7 +17,7 @@ import { LocalNotifications, ILocalNotification } from '@ionic-native/local-noti
   styleUrls: ['app.component.scss'],
 })
 export class AppComponent {
-  public isCordova: boolean; // For template access
+  public isCordova: boolean = false; // For template access
 
   constructor(
     private platform: Platform,
