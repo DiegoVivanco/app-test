@@ -18,7 +18,7 @@ export class ReminderService {
     // This will be scheduled if on Cordova platform when initializeNotifications is called
     this.reminders.push({
         id: uuidv4(),
-        text: 'Tomar creatina (Sample)',
+        text: 'Tomar creatina (Ejemplo)',
         frequency: 'daily',
         time: '08:00',
         optionalDays: [0, 6], // Sunday, Saturday
@@ -94,7 +94,7 @@ export class ReminderService {
 
       const notification: ILocalNotification = {
         id: numericId,
-        title: 'Reminder',
+        title: 'Recordatorio',
         text: reminder.text,
         trigger: {
           every: { hour, minute }, // For daily, this means every day at this hour and minute
@@ -115,7 +115,7 @@ export class ReminderService {
 
         const notification: ILocalNotification = {
           id: numericIdForDay,
-          title: 'Reminder',
+          title: 'Recordatorio',
           text: reminder.text,
           trigger: {
             every: { weekday: day, hour, minute }, // Sunday is 0 in plugin, but JS Date.getDay() is also 0. Plugin uses 1-7 for days. Let's use plugin's convention.

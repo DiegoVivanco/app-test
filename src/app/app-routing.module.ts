@@ -16,8 +16,8 @@ const routes: Routes = [
     loadComponent: () => import('./pages/reminder-add/reminder-add.component').then(m => m.ReminderAddPage)
   },
   {
-    path: 'reminder-edit/:id',
-    loadComponent: () => import('./pages/reminder-add/reminder-add.component').then(m => m.ReminderAddPage) // Uses the same page component
+    path: 'reminder-add/:id', // This path is for editing an existing reminder
+    loadComponent: () => import('./pages/reminder-add/reminder-add.component').then(m => m.ReminderAddPage)
   },
   {
     path: 'home', // Or whatever your old default was, can be removed or kept

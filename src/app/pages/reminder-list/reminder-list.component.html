@@ -1,6 +1,6 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>My Reminders</ion-title>
+    <ion-title>Mis Recordatorios</ion-title>
     <ion-buttons slot="end">
       <ion-button (click)="goToAddReminderPage()">
         <ion-icon slot="icon-only" name="add-circle-outline"></ion-icon>
@@ -14,16 +14,20 @@
     <ion-item *ngFor="let reminder of reminders">
       <ion-label>
         <h2>{{ reminder.text }}</h2>
-        <p>Time: {{ reminder.time }}</p>
-        <p>Frequency: {{ getFrequencyText(reminder) }}</p>
-        <p>Status: {{ reminder.enabled ? 'Enabled' : 'Disabled' }}</p>
+        <p>Hora: {{ reminder.time }}</p>
+        <p>Frecuencia: {{ getFrequencyText(reminder) }}</p>
+        <p>Estado: {{ reminder.enabled ? 'Activado' : 'Desactivado' }}</p>
       </ion-label>
-      <!-- Add buttons for edit/delete later -->
+      <ion-buttons slot="end">
+        <ion-button (click)="goToEditReminderPage(reminder.id)">
+          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
     </ion-item>
   </ion-list>
   <ng-template #noReminders>
     <div style="text-align: center; padding-top: 20px;">
-      <p>No reminders yet. Add one!</p>
+      <p>Aún no hay recordatorios. ¡Añade uno!</p>
     </div>
   </ng-template>
 </ion-content>

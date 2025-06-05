@@ -39,25 +39,29 @@ export class ReminderListPage implements OnInit { // Class name is ReminderListP
     this.navCtrl.navigateForward('/reminder-add');
   }
 
+  goToEditReminderPage(reminderId: string) {
+    this.navCtrl.navigateForward(`/reminder-add/${reminderId}`);
+  }
+
   getFrequencyText(reminder: Reminder): string {
     if (reminder.frequency === 'daily') {
-      let text = 'Daily';
+      let text = 'Diario';
       if (reminder.daysOfWeek && reminder.daysOfWeek.length < 7 && reminder.daysOfWeek.length > 0) {
-        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         text += ` (${reminder.daysOfWeek.map(d => dayNames[d]).join(', ')})`;
       }
       if (reminder.optionalDays && reminder.optionalDays.length > 0) {
-        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        text += ` (Optional on ${reminder.optionalDays.map(d => dayNames[d]).join(', ')})`;
+        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        text += ` (Opcional en ${reminder.optionalDays.map(d => dayNames[d]).join(', ')})`;
       }
       return text;
     } else if (reminder.frequency === 'weekly') {
       if (reminder.daysOfWeek && reminder.daysOfWeek.length > 0) {
-        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        return `Weekly on ${reminder.daysOfWeek.map(d => dayNames[d]).join(', ')}`;
+        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        return `Semanalmente los ${reminder.daysOfWeek.map(d => dayNames[d]).join(', ')}`;
       }
-      return 'Weekly (specific days not set)';
+      return 'Semanal (días específicos no establecidos)';
     }
-    return 'Frequency not set';
+    return 'Frecuencia no establecida';
   }
 }

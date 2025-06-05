@@ -18,13 +18,13 @@ export class ReminderAddPage implements OnInit { // Class name as per instructio
   isEditMode = false;
   reminderId: string | null = null;
   daysOfWeekOptions = [
-    { val: 0, name: 'Sunday', isChecked: false },
-    { val: 1, name: 'Monday', isChecked: false },
-    { val: 2, name: 'Tuesday', isChecked: false },
-    { val: 3, name: 'Wednesday', isChecked: false },
-    { val: 4, name: 'Thursday', isChecked: false },
-    { val: 5, name: 'Friday', isChecked: false },
-    { val: 6, name: 'Saturday', isChecked: false }
+    { val: 0, name: 'Domingo', isChecked: false },
+    { val: 1, name: 'Lunes', isChecked: false },
+    { val: 2, name: 'Martes', isChecked: false },
+    { val: 3, name: 'Miércoles', isChecked: false },
+    { val: 4, name: 'Jueves', isChecked: false },
+    { val: 5, name: 'Viernes', isChecked: false },
+    { val: 6, name: 'Sábado', isChecked: false }
   ];
   optionalDaysOptions = JSON.parse(JSON.stringify(this.daysOfWeekOptions)); // Deep copy
 
