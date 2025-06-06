@@ -12,6 +12,7 @@
     "lint": "ng lint"
   },
   "private": true,
+  "description": "An Ionic project",
   "dependencies": {
     "@angular/animations": "^19.0.0",
     "@angular/common": "^19.0.0",
@@ -21,11 +22,12 @@
     "@angular/platform-browser": "^19.0.0",
     "@angular/platform-browser-dynamic": "^19.0.0",
     "@angular/router": "^19.0.0",
-    "@capacitor/android": "^7.2.0",
-    "@ionic-native/core": "^5.36.0",
-    "@ionic-native/local-notifications": "^5.36.0",
+    "@capacitor/android": "^5.7.8",
+    "@capacitor/core": "^5.7.8",
+    "@capacitor/cli": "^5.7.8",
+    "@capacitor/device": "^5.0.8",
+    "@capacitor/local-notifications": "^5.0.8",
     "@ionic/angular": "^8.0.0",
-    "cordova-plugin-local-notification": "^1.1.8",
     "ionicons": "^7.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
@@ -42,8 +44,6 @@
     "@angular/cli": "^19.0.0",
     "@angular/compiler-cli": "^19.0.0",
     "@angular/language-service": "^19.0.0",
-    "@capacitor/cli": "^5.7.8",
-    "@capacitor/core": "^5.7.8",
     "@ionic/angular-toolkit": "^12.0.0",
     "@types/jasmine": "~5.1.0",
     "@types/uuid": "^10.0.0",
@@ -61,6 +61,5 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "typescript": "~5.6.3"
-  },
-  "description": "An Ionic project"
+  }
 }

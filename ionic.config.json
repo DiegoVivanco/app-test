@@ -1,7 +1,9 @@
 {
   "name": "app-test",
   "type": "angular",
-  "integrations": {},
+  "integrations": {
+    "cordova": {}
+  },
   "serve": {
     "host": "localhost",
     "port": 8101
