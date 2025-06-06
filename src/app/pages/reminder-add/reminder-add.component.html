@@ -17,6 +17,15 @@
       <ion-label position="floating">Hora (e.g., 09:00)</ion-label>
       <ion-input formControlName="time" type="time"></ion-input>
     </ion-item>
+    <ion-item>
+      <ion-label position="floating">Intervalo de Insistencia (min)</ion-label>
+      <ion-input formControlName="insistenceInterval" type="number" placeholder="Ej: 30"></ion-input>
+    </ion-item>
+    <ion-item *ngIf="reminderForm.get('insistenceInterval')?.hasError('min') && reminderForm.get('insistenceInterval')?.touched">
+      <ion-text color="danger">
+        <p>El intervalo debe ser al menos 1 minuto.</p>
+      </ion-text>
+    </ion-item>
 
     <ion-list-header>
       <ion-label>Frecuencia</ion-label>

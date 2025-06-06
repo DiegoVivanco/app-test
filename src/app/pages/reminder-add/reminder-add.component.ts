@@ -37,6 +37,7 @@ export class ReminderAddPage implements OnInit { // Class name as per instructio
       text: ['', Validators.required],
       time: ['', Validators.required],
       frequency: ['weekly', Validators.required], // Default to weekly
+      insistenceInterval: [30, [Validators.required, Validators.min(1)]]
       // daysOfWeek will be populated based on checkboxes
       // optionalDays will be populated based on checkboxes
     });
@@ -81,6 +82,7 @@ export class ReminderAddPage implements OnInit { // Class name as per instructio
         text: reminder.text,
         time: reminder.time,
         frequency: reminder.frequency, // This will trigger valueChanges if different from current
+        insistenceInterval: reminder.insistenceInterval ?? 30
       });
 
       // Critically, ensure loaded reminder's daysOfWeek take precedence
@@ -109,11 +111,12 @@ export class ReminderAddPage implements OnInit { // Class name as per instructio
     const formValues = this.reminderForm.value;
     const selectedDaysOfWeek = this.daysOfWeekOptions.filter((opt:any) => opt.isChecked).map((opt:any) => opt.val);
 
-    const reminderData: Omit<Reminder, 'id' | 'enabled'> = {
+    const reminderData: Omit<Reminder, 'id' | 'enabled'> & { insistenceInterval?: number } = {
       text: formValues.text,
       time: formValues.time,
       frequency: formValues.frequency,
       daysOfWeek: selectedDaysOfWeek.length > 0 ? selectedDaysOfWeek : undefined,
+      insistenceInterval: formValues.insistenceInterval
     };
 
     if (this.isEditMode && this.reminderId) {

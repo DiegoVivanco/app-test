@@ -22,7 +22,8 @@ export class ReminderService {
       frequency: 'weekly',
       daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
       time: `${hour}:${minute}`,
-      enabled: true
+      enabled: true,
+      insistenceInterval: 15
     });
   }
 
@@ -31,6 +32,40 @@ export class ReminderService {
     const permResult = await LocalNotifications.requestPermissions();
     if (permResult.display === 'granted') {
       await this.scheduleAllNotifications();
+
+      LocalNotifications.addListener('localNotificationActionPerformed', async (notificationAction) => {
+        console.log('Notification action performed:', notificationAction);
+
+        const { reminderId, insistenceInterval } = notificationAction.notification.extra;
+
+        if (reminderId && typeof insistenceInterval === 'number' && insistenceInterval > 0) {
+          const reminder = this.getReminderById(reminderId);
+
+          if (reminder && reminder.enabled) {
+            const newTime = new Date().getTime() + insistenceInterval * 60 * 1000;
+            const newNotificationId = this.getNumericId(`${reminder.id}-insist-${Date.now()}`);
+
+            const newNotificationConfig = {
+              id: newNotificationId,
+              title: reminder.text, // Using reminder.text as title for more context, or use a generic 'Recordatorio'
+              body: `Insistencia: ${reminder.text}`, // Or just reminder.text
+              schedule: { at: new Date(newTime) },
+              extra: { ...notificationAction.notification.extra }, // Preserve original extra, including reminderId and insistenceInterval
+            };
+
+            try {
+              await LocalNotifications.schedule({ notifications: [newNotificationConfig] });
+              console.log(`Scheduled insisted notification for reminder ${reminderId} at ${new Date(newTime)}`);
+            } catch (e) {
+              console.error('Error scheduling insisted notification', e);
+            }
+          } else {
+            console.log(`Reminder ${reminderId} not found or not enabled for insistence.`);
+          }
+        } else {
+          console.log('No valid reminderId or insistenceInterval for actioned notification.');
+        }
+      });
     } else {
       console.warn('No permission for local notifications');
     }
@@ -59,7 +94,7 @@ export class ReminderService {
         title: 'Recordatorio',
         body: reminder.text,
         schedule: { on: { hour, minute, repeats: true } },
-        extra: { reminderId: reminder.id }
+        extra: { reminderId: reminder.id, insistenceInterval: reminder.insistenceInterval ?? 30 }
       });
     }
 
@@ -70,7 +105,7 @@ export class ReminderService {
           title: 'Recordatorio',
           body: reminder.text,
           schedule: { on: { weekday: day + 1, hour, minute, repeats: true } },
-          extra: { reminderId: reminder.id, weekday: day + 1 }
+          extra: { reminderId: reminder.id, weekday: day + 1, insistenceInterval: reminder.insistenceInterval ?? 30 }
         });
       }
     }
@@ -100,7 +135,12 @@ export class ReminderService {
   }
 
   async addReminder(data: Omit<Reminder, 'id' | 'enabled'>): Promise<Reminder> {
-    const r: Reminder = { ...data, id: uuidv4(), enabled: true };
+    const r: Reminder = {
+      ...data,
+      id: uuidv4(),
+      enabled: true,
+      insistenceInterval: data.insistenceInterval ?? 30
+    };
     this.reminders.push(r);
     await this.scheduleNotification(r);
     return r;
@@ -110,10 +150,13 @@ export class ReminderService {
     const i = this.reminders.findIndex(r => r.id === updated.id);
     if (i === -1) throw new Error('Reminder not found');
     const old = { ...this.reminders[i] };
-    this.reminders[i] = { ...updated };
+    this.reminders[i] = {
+      ...updated,
+      insistenceInterval: updated.insistenceInterval ?? 30
+    };
     await this.cancelNotification(old);
-    if (updated.enabled) await this.scheduleNotification(updated);
-    return updated;
+    if (this.reminders[i].enabled) await this.scheduleNotification(this.reminders[i]);
+    return this.reminders[i];
   }
 
   async deleteReminder(id: string): Promise<void> {
