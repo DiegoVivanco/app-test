@@ -31,39 +31,92 @@ export class ReminderService {
     await this.platform.ready();
     const permResult = await LocalNotifications.requestPermissions();
     if (permResult.display === 'granted') {
+      const reminderActionTypes = {
+        types: [
+          {
+            id: 'REMINDER_ACTIONS', // Un ID para este conjunto de acciones
+            actions: [
+              {
+                id: 'snooze', // ID para la acción de posponer
+                title: 'Posponer',
+                // Considerar foreground: false para iOS si queremos que no abra la app
+              },
+              {
+                id: 'mark_done', // ID para la acción de marcar como completada
+                title: 'Completada',
+              }
+            ]
+          }
+        ]
+      };
+
+      try {
+        await LocalNotifications.registerActionTypes(reminderActionTypes);
+        console.log('Tipos de acciones de recordatorio registradas');
+      } catch (error) {
+        console.error('Error al registrar tipos de acciones de recordatorio', error);
+      }
+
       await this.scheduleAllNotifications();
 
       LocalNotifications.addListener('localNotificationActionPerformed', async (notificationAction) => {
         console.log('Notification action performed:', notificationAction);
-
+        const actionId = notificationAction.actionId;
         const { reminderId, insistenceInterval } = notificationAction.notification.extra;
 
-        if (reminderId && typeof insistenceInterval === 'number' && insistenceInterval > 0) {
-          const reminder = this.getReminderById(reminderId);
+        if (actionId === 'mark_done') {
+          console.log(`Recordatorio ${reminderId} marcado como completado. No se pospondrá.`);
+          // Optionally, you might want to disable the reminder here:
+          // if (reminderId) {
+          //   const reminder = this.getReminderById(reminderId);
+          //   if (reminder) {
+          //     reminder.enabled = false;
+          //     await this.updateReminder(reminder); // Assumes updateReminder handles re-scheduling/cancelling if needed
+          //     console.log(`Recordatorio ${reminderId} deshabilitado.`);
+          //   }
+          // }
+          return; // Stop further processing for 'mark_done'
+        }
 
-          if (reminder && reminder.enabled) {
-            const newTime = new Date().getTime() + insistenceInterval * 60 * 1000;
-            const newNotificationId = this.getNumericId(`${reminder.id}-insist-${Date.now()}`);
+        // For 'snooze' or 'tap' (default action when tapping the notification body)
+        if (actionId === 'snooze' || actionId === 'tap') {
+          if (reminderId && typeof insistenceInterval === 'number' && insistenceInterval > 0) {
+            const reminder = this.getReminderById(reminderId);
 
-            const newNotificationConfig = {
-              id: newNotificationId,
-              title: reminder.text, // Using reminder.text as title for more context, or use a generic 'Recordatorio'
-              body: `Insistencia: ${reminder.text}`, // Or just reminder.text
-              schedule: { at: new Date(newTime) },
-              extra: { ...notificationAction.notification.extra }, // Preserve original extra, including reminderId and insistenceInterval
-            };
+            if (reminder && reminder.enabled) {
+              const newTime = new Date().getTime() + insistenceInterval * 60 * 1000;
+              const newNotificationId = this.getNumericId(`${reminder.id}-insist-${Date.now()}`);
 
-            try {
-              await LocalNotifications.schedule({ notifications: [newNotificationConfig] });
-              console.log(`Scheduled insisted notification for reminder ${reminderId} at ${new Date(newTime)}`);
-            } catch (e) {
-              console.error('Error scheduling insisted notification', e);
+              const newNotificationConfig: any = { // Use 'any' or define a more specific type if available/needed
+                id: newNotificationId,
+                title: reminder.text,
+                body: `Insistencia: ${reminder.text}`,
+                schedule: { at: new Date(newTime) },
+                extra: { ...notificationAction.notification.extra },
+                actionTypeId: 'REMINDER_ACTIONS',
+                sound: this.platform.is('ios') ? 'beep.wav' : undefined // Or your specific sound file, conditional for iOS
+                // For Android, default sound is usually played. 'sound' property might behave differently or rely on channel settings.
+              };
+
+              // Ensure sound is explicitly set for iOS if using a custom sound file.
+              // If 'beep.wav' is not a file in native resources, Capacitor might use default.
+              // For default sound, it might be better to omit `sound` or use `sound: 'default'` if supported.
+              // Let's assume 'beep.wav' is a known sound or we rely on default if not found.
+
+              try {
+                await LocalNotifications.schedule({ notifications: [newNotificationConfig] });
+                console.log(`Scheduled insisted notification for reminder ${reminderId} (action: ${actionId}) at ${new Date(newTime)}`);
+              } catch (e) {
+                console.error('Error scheduling insisted notification', e);
+              }
+            } else {
+              console.log(`Reminder ${reminderId} not found or not enabled for insistence (action: ${actionId}).`);
             }
           } else {
-            console.log(`Reminder ${reminderId} not found or not enabled for insistence.`);
+            console.log(`No valid reminderId or insistenceInterval for actioned notification (action: ${actionId}).`);
           }
         } else {
-          console.log('No valid reminderId or insistenceInterval for actioned notification.');
+          console.log(`Acción desconocida o no manejada: ${actionId}`);
         }
       });
     } else {
@@ -94,7 +147,8 @@ export class ReminderService {
         title: 'Recordatorio',
         body: reminder.text,
         schedule: { on: { hour, minute, repeats: true } },
-        extra: { reminderId: reminder.id, insistenceInterval: reminder.insistenceInterval ?? 30 }
+        extra: { reminderId: reminder.id, insistenceInterval: reminder.insistenceInterval ?? 30 },
+        actionTypeId: 'REMINDER_ACTIONS'
       });
     }
 
@@ -105,7 +159,8 @@ export class ReminderService {
           title: 'Recordatorio',
           body: reminder.text,
           schedule: { on: { weekday: day + 1, hour, minute, repeats: true } },
-          extra: { reminderId: reminder.id, weekday: day + 1, insistenceInterval: reminder.insistenceInterval ?? 30 }
+          extra: { reminderId: reminder.id, weekday: day + 1, insistenceInterval: reminder.insistenceInterval ?? 30 },
+          actionTypeId: 'REMINDER_ACTIONS'
         });
       }
     }
