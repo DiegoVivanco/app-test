@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
-import { IonicModule, Platform } from '@ionic/angular';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { IonicModule, Platform, AlertController, ToastController } from '@ionic/angular'; // Added ToastController
 import { RouterModule } from '@angular/router';
 import { ReminderService } from './services/reminder.service';
+import { Subscription } from 'rxjs'; // Added Subscription
 import { DailyStatusService } from './services/daily-status.service';
 import {
   LocalNotifications,
@@ -18,12 +19,15 @@ import {
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
 })
-export class AppComponent {
+export class AppComponent implements OnInit, OnDestroy { // Implemented OnInit, OnDestroy
+  private confirmCompletionSub: Subscription | undefined;
 
   constructor(
     private platform: Platform,
     private reminderService: ReminderService,
-    private dailyStatusService: DailyStatusService
+    private dailyStatusService: DailyStatusService,
+    private alertCtrl: AlertController,
+    private toastCtrl: ToastController // Injected ToastController
   ) {
     this.initializeApp();
   }
@@ -54,6 +58,57 @@ export class AppComponent {
       console.log('Notification triggered:', notification);
       await this.handleNotificationTrigger(notification.extra);
     });
+  }
+
+  ngOnInit() {
+    this.confirmCompletionSub = this.reminderService.requestConfirmCompletion$.subscribe(
+      ({ reminderId, reminderText }) => {
+        this.presentConfirmCompleteAlert(reminderId, reminderText);
+      }
+    );
+  }
+
+  ngOnDestroy() {
+    if (this.confirmCompletionSub) {
+      this.confirmCompletionSub.unsubscribe();
+    }
+  }
+
+  async presentConfirmCompleteAlert(reminderId: string, reminderText: string) {
+    const alert = await this.alertCtrl.create({
+      header: 'Confirmar Tarea',
+      message: `¿Estás seguro de que quieres marcar como completada la tarea: "${reminderText}"?`,
+      buttons: [
+        {
+          text: 'No',
+          role: 'cancel',
+          handler: () => {
+            console.log('Confirmación de completar cancelada para recordatorio:', reminderId);
+            this.reminderService.reminderCompletionCancelled(reminderId);
+          }
+        },
+        {
+          text: 'Sí',
+          handler: () => {
+            console.log('Confirmado completar para recordatorio:', reminderId);
+            this.reminderService.confirmReminderCompleted(reminderId);
+            this.showTaskCompletedToast(reminderText);
+          }
+        }
+      ],
+      backdropDismiss: false // Evitar que se cierre al tocar fuera
+    });
+    await alert.present();
+  }
+
+  async showTaskCompletedToast(taskText: string) {
+    const toast = await this.toastCtrl.create({
+      message: `Tarea "${taskText}" completada.`,
+      duration: 2000, // Duración de 2 segundos
+      position: 'bottom', // Posición del toast
+      color: 'success' // Color del toast
+    });
+    await toast.present();
   }
 
   private async handleNotificationTrigger(data: any) {

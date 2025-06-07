@@ -3,12 +3,15 @@ import { Reminder } from '../models/reminder.model';
 import { v4 as uuidv4 } from 'uuid';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Platform } from '@ionic/angular';
+import { Subject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReminderService {
   private reminders: Reminder[] = [];
+  private requestConfirmCompletionSource = new Subject<{ reminderId: string, reminderText: string }>();
+  public requestConfirmCompletion$ = this.requestConfirmCompletionSource.asObservable();
 
   constructor(private platform: Platform) {
     const now = new Date();
@@ -65,21 +68,21 @@ export class ReminderService {
         const { reminderId, insistenceInterval } = notificationAction.notification.extra;
 
         if (actionId === 'mark_done') {
-          console.log(`Recordatorio ${reminderId} marcado como completado. No se pospondrá.`);
-          // Optionally, you might want to disable the reminder here:
-          // if (reminderId) {
-          //   const reminder = this.getReminderById(reminderId);
-          //   if (reminder) {
-          //     reminder.enabled = false;
-          //     await this.updateReminder(reminder); // Assumes updateReminder handles re-scheduling/cancelling if needed
-          //     console.log(`Recordatorio ${reminderId} deshabilitado.`);
-          //   }
-          // }
-          return; // Stop further processing for 'mark_done'
-        }
-
-        // For 'snooze' or 'tap' (default action when tapping the notification body)
-        if (actionId === 'snooze' || actionId === 'tap') {
+          console.log(`Recordatorio ${reminderId} solicitando confirmación para marcar como completado.`);
+          if (reminderId) {
+            const reminder = this.getReminderById(reminderId);
+            if (reminder) {
+              this.requestConfirmCompletionSource.next({ reminderId, reminderText: reminder.text });
+              return;
+            } else {
+              console.warn(`Recordatorio con ID ${reminderId} no encontrado al intentar confirmar compleción.`);
+              return;
+            }
+          } else {
+            console.warn(`No se proporcionó reminderId para la acción mark_done.`);
+            return;
+          }
+        } else if (actionId === 'snooze' || actionId === 'tap') {
           if (reminderId && typeof insistenceInterval === 'number' && insistenceInterval > 0) {
             const reminder = this.getReminderById(reminderId);
 
@@ -244,5 +247,17 @@ export class ReminderService {
   async cancelHourlyNotificationsForToday(reminderId: string): Promise<void> {
     console.warn('cancelHourlyNotificationsForToday not implemented');
     return Promise.resolve();
+  }
+
+  public confirmReminderCompleted(reminderId: string): void {
+    console.log(`ReminderService: Recordatorio ${reminderId} confirmado como completado por el usuario.`);
+    // Aquí iría la lógica adicional, como llamar a DailyStatusService si existiera.
+    // Ejemplo: if (this.dailyStatusService) { this.dailyStatusService.markAsCompleted(reminderId); }
+    // Por ahora, solo el log.
+  }
+
+  public reminderCompletionCancelled(reminderId: string): void {
+    console.log(`ReminderService: Completar recordatorio ${reminderId} fue cancelado por el usuario.`);
+    // Aquí podría ir lógica futura si queremos reprogramar o hacer algo específico al cancelar.
   }
 }
