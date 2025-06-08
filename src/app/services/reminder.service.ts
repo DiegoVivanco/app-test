@@ -58,7 +58,7 @@ export class ReminderService {
     if (this.reminders.length === 0) {
       console.log('No hay recordatorios cargados, añadiendo recordatorio de ejemplo.');
       const now = new Date();
-      now.setMinutes(now.getMinutes() + 5); // Ejemplo: 5 minutos en el futuro
+      now.setMinutes(now.getMinutes() + 1); // Ejemplo: 5 minutos en el futuro
       const hour = now.getHours().toString().padStart(2, '0');
       const minute = now.getMinutes().toString().padStart(2, '0');
 
@@ -69,7 +69,7 @@ export class ReminderService {
         daysOfWeek: [0, 1, 2, 3, 4, 5, 6], // Todos los días para el ejemplo
         time: `${hour}:${minute}`,
         enabled: true,
-        insistenceInterval: 15
+        insistenceInterval: 1
       };
       this.reminders.push(exampleReminder);
       await this._saveRemindersToStorage();
