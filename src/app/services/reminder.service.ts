@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Platform } from '@ionic/angular';
 import { Subject } from 'rxjs';
+import { Preferences } from '@capacitor/preferences';
 
 @Injectable({
   providedIn: 'root'
@@ -14,24 +15,67 @@ export class ReminderService {
   public requestConfirmCompletion$ = this.requestConfirmCompletionSource.asObservable();
 
   constructor(private platform: Platform) {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + 2);
-    const hour = now.getHours().toString().padStart(2, '0');
-    const minute = now.getMinutes().toString().padStart(2, '0');
+    // El constructor ahora será más ligero.
+    // La inicialización principal se hará en initializeNotifications.
+  }
 
-    this.reminders.push({
-      id: uuidv4(),
-      text: 'Tomar creatina (Ejemplo)',
-      frequency: 'weekly',
-      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
-      time: `${hour}:${minute}`,
-      enabled: true,
-      insistenceInterval: 15
-    });
+  private async _loadRemindersFromStorage(): Promise<void> {
+    try {
+      const storedReminders = await Preferences.get({ key: 'reminders' });
+      if (storedReminders && storedReminders.value) {
+        this.reminders = JSON.parse(storedReminders.value);
+        console.log('Recordatorios cargados desde el almacenamiento:', this.reminders);
+      } else {
+        // No hay recordatorios guardados, podríamos inicializar con una lista vacía
+        // o con el recordatorio de ejemplo (esto se manejará en el ajuste del constructor).
+        this.reminders = [];
+        console.log('No se encontraron recordatorios en el almacenamiento, inicializando lista vacía.');
+      }
+    } catch (error) {
+      console.error('Error al cargar recordatorios desde el almacenamiento:', error);
+      this.reminders = []; // En caso de error, empezar con lista vacía
+    }
+  }
+
+  private async _saveRemindersToStorage(): Promise<void> {
+    try {
+      await Preferences.set({
+        key: 'reminders',
+        value: JSON.stringify(this.reminders)
+      });
+      console.log('Recordatorios guardados en el almacenamiento.');
+    } catch (error) {
+      console.error('Error al guardar recordatorios en el almacenamiento:', error);
+    }
   }
 
   async initializeNotifications() {
-    await this.platform.ready();
+    await this.platform.ready(); // Asegurar que la plataforma está lista
+
+    // 1. Cargar recordatorios desde el almacenamiento
+    await this._loadRemindersFromStorage();
+
+    if (this.reminders.length === 0) {
+      console.log('No hay recordatorios cargados, añadiendo recordatorio de ejemplo.');
+      const now = new Date();
+      now.setMinutes(now.getMinutes() + 5); // Ejemplo: 5 minutos en el futuro
+      const hour = now.getHours().toString().padStart(2, '0');
+      const minute = now.getMinutes().toString().padStart(2, '0');
+
+      const exampleReminder: Reminder = {
+        id: uuidv4(),
+        text: 'Tomar creatina (Ejemplo)',
+        frequency: 'weekly',
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6], // Todos los días para el ejemplo
+        time: `${hour}:${minute}`,
+        enabled: true,
+        insistenceInterval: 15
+      };
+      this.reminders.push(exampleReminder);
+      await this._saveRemindersToStorage();
+    }
+
+    // 3. Registrar permisos y tipos de acciones
     const permResult = await LocalNotifications.requestPermissions();
     if (permResult.display === 'granted') {
       const reminderActionTypes = {
@@ -201,6 +245,7 @@ export class ReminderService {
     };
     this.reminders.push(r);
     await this.scheduleNotification(r);
+    await this._saveRemindersToStorage();
     return r;
   }
 
@@ -214,6 +259,7 @@ export class ReminderService {
     };
     await this.cancelNotification(old);
     if (this.reminders[i].enabled) await this.scheduleNotification(this.reminders[i]);
+    await this._saveRemindersToStorage();
     return this.reminders[i];
   }
 
@@ -222,6 +268,7 @@ export class ReminderService {
     if (index !== -1) {
       await this.cancelNotification(this.reminders[index]);
       this.reminders.splice(index, 1);
+      await this._saveRemindersToStorage();
     }
   }
 
