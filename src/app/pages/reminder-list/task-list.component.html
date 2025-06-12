@@ -1,0 +1,77 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>
+      Task Lists
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="addTaskList()">
+        <ion-icon slot="icon-only" name="add-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Task Lists</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <!-- Task List Management Section -->
+  <ion-list-header *ngIf="taskLists.length > 0">My Lists</ion-list-header>
+  <ion-list *ngIf="taskLists.length > 0" [inset]="true">
+    <ion-item-sliding *ngFor="let list of taskLists">
+      <ion-item button (click)="selectList(list.id)" [class.selected]="list.id === selectedListId">
+        <ion-label>{{ list.name }}</ion-label>
+        <ion-icon name="chevron-forward-outline" slot="end" *ngIf="list.id === selectedListId"></ion-icon>
+      </ion-item>
+      <ion-item-options side="end">
+        <ion-item-option color="primary" (click)="renameTaskList(list)">
+          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+        </ion-item-option>
+        <ion-item-option color="danger" (click)="deleteTaskList(list)">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+    </ion-item-sliding>
+  </ion-list>
+  <ion-text *ngIf="taskLists.length === 0" class="ion-padding">
+    <p>No task lists yet. Tap the '+' button above to create one!</p>
+  </ion-text>
+
+  <!-- Tasks for Selected List Section -->
+  <ion-list-header *ngIf="selectedListId && tasks.length > 0 && taskLists.length > 0">{{ taskLists.find(tl => tl.id === selectedListId)?.name }} Tasks</ion-list-header>
+  <ion-list *ngIf="selectedListId && tasks.length > 0" [inset]="true">
+    <ion-item-sliding *ngFor="let task of tasks">
+      <ion-item button (click)="goToEditTaskPage(task)">
+        <ion-label>
+          <h2>{{ task.text }}</h2>
+          <p *ngIf="task.dueDate">{{ task.dueDate | date:'shortDate' }}</p>
+          <p *ngIf="task.description">{{ task.description | slice:0:100 }}</p>
+        </ion-label>
+        <!-- Maybe a checkbox here later for quick completion -->
+      </ion-item>
+      <ion-item-options side="end">
+        <ion-item-option color="primary" (click)="goToEditTaskPage(task)">
+          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+        </ion-item-option>
+        <ion-item-option color="danger" (click)="deleteTask(task.id)">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+    </ion-item-sliding>
+  </ion-list>
+  <ion-text *ngIf="selectedListId && tasks.length === 0 && taskLists.length > 0" class="ion-padding">
+    <p>No tasks in this list yet. Use the button below to add one.</p>
+  </ion-text>
+  <ion-text *ngIf="!selectedListId && taskLists.length > 0" class="ion-padding">
+    <p>Select a list to see its tasks.</p>
+  </ion-text>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" *ngIf="selectedListId">
+    <ion-fab-button (click)="goToAddTaskPage()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

@@ -4,20 +4,20 @@ import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 const routes: Routes = [
   {
     path: '',
-    redirectTo: 'reminder-list', // Default route
+    redirectTo: 'task-list', // Updated redirectTo
     pathMatch: 'full'
   },
   {
-    path: 'reminder-list',
-    loadComponent: () => import('./pages/reminder-list/reminder-list.component').then(m => m.ReminderListPage)
+    path: 'task-list', // Updated path
+    loadComponent: () => import('./pages/reminder-list/task-list.component').then(m => m.TaskListPage) // Updated import path and class name
   },
   {
-    path: 'reminder-add',
-    loadComponent: () => import('./pages/reminder-add/reminder-add.component').then(m => m.ReminderAddPage)
+    path: 'task-add', // Updated path
+    loadComponent: () => import('./pages/reminder-add/task-add.component').then(m => m.TaskAddPage) // Updated import and class
   },
   {
-    path: 'reminder-add/:id', // This path is for editing an existing reminder
-    loadComponent: () => import('./pages/reminder-add/reminder-add.component').then(m => m.ReminderAddPage)
+    path: 'task-add/:id', // Updated path
+    loadComponent: () => import('./pages/reminder-add/task-add.component').then(m => m.TaskAddPage) // Updated import and class
   },
   {
     path: 'home', // Or whatever your old default was, can be removed or kept

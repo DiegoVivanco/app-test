@@ -1,0 +1,6 @@
+ion-item.selected {
+  --background: var(--ion-color-light-shade); // Using a lighter shade for selection
+  ion-label {
+    font-weight: 600; // Slightly bolder
+  }
+}
