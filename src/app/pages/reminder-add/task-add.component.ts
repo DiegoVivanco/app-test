@@ -1,9 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NavController, ToastController, IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; // Needed for [(ngModel)]
-
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Task } from '../../../models/task.model';
 import { TaskList } from '../../../models/task-list.model';
 import { TaskService } from '../../../services/task.service';
@@ -14,18 +13,21 @@ import { TaskListService } from '../../../services/task-list.service';
   templateUrl: './task-add.component.html',
   styleUrls: ['./task-add.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule]
+  imports: [IonicModule, CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
 })
 export class TaskAddPage implements OnInit {
-  task: Partial<Task> = { text: '', enabled: true, frequency: 'daily' }; // Initialize with defaults
-  taskLists: TaskList[] = [];
+  reminderForm!: FormGroup;
+  daysOfWeekOptions = [
+    { name: 'Lunes', value: 1, isChecked: false }, { name: 'Martes', value: 2, isChecked: false },
+    { name: 'Miércoles', value: 3, isChecked: false }, { name: 'Jueves', value: 4, isChecked: false },
+    { name: 'Viernes', value: 5, isChecked: false }, { name: 'Sábado', value: 6, isChecked: false },
+    { name: 'Domingo', value: 0, isChecked: false }
+  ];
   isEditMode = false;
   taskId: string | null = null;
-  selectedListId: string | null = null; // To hold the listId for the task
-
-  // Properties from old reminder form - to be removed or adapted
-  // reminderForm: FormGroup;
-  // daysOfWeekOptions = [ ... ]; // This logic will be simplified or handled differently if needed for Task
+  taskLists: TaskList[] = [];
+  selectedListId: string | null = null;
+  currentTaskForEdit: Task | null = null;
 
   constructor(
     public taskService: TaskService,
@@ -33,15 +35,19 @@ export class TaskAddPage implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private navController: NavController,
-    private toastController: ToastController
-    // private fb: FormBuilder, // Removed FormBuilder for now
+    private toastController: ToastController,
+    private fb: FormBuilder
   ) {
-    // Initialize form if it were still used
-    // this.reminderForm = this.fb.group({...});
+    this.reminderForm = this.fb.group({
+      text: ['', Validators.required],
+      time: ['09:00', Validators.required],
+      insistenceInterval: [30, Validators.min(1)],
+      frequency: ['daily', Validators.required]
+    });
   }
 
-  async ngOnInit() {
-    await this.loadTaskLists(); // Load lists first
+  async ngOnInit(): Promise<void> {
+    await this.loadTaskLists();
 
     this.taskId = this.route.snapshot.paramMap.get('id');
     const queryListId = this.route.snapshot.queryParamMap.get('listId');
@@ -51,112 +57,125 @@ export class TaskAddPage implements OnInit {
       await this.loadTaskDetails(this.taskId);
     } else {
       this.isEditMode = false;
-      this.task = {
-        text: '',
-        enabled: true,
-        frequency: 'daily', // Default frequency
-        // time: '09:00' // Default time if needed
-      };
+      this.reminderForm.reset({ text: '', time: '09:00', insistenceInterval: 30, frequency: 'daily' });
       if (queryListId) {
         this.selectedListId = queryListId;
-        this.task.listId = queryListId;
       } else if (this.taskLists.length > 0) {
-        // If no listId from query param, default to the first list
         this.selectedListId = this.taskLists[0].id;
-        this.task.listId = this.taskLists[0].id;
       }
     }
   }
 
   async loadTaskLists(): Promise<void> {
-    this.taskLists = await this.taskListService.getTaskLists();
-    // If new task and no listId set from query, and no listId on task obj, default from loaded lists
-    if (!this.isEditMode && !this.task.listId && this.taskLists.length > 0) {
+    try {
+      this.taskLists = await this.taskListService.getTaskLists();
+      if (!this.isEditMode && !this.selectedListId && this.taskLists.length > 0) {
         this.selectedListId = this.taskLists[0].id;
-        this.task.listId = this.taskLists[0].id;
+      }
+    } catch (error) {
+      console.error('Error loading task lists:', error);
+      const toast = await this.toastController.create({
+        message: 'Error al cargar las listas de tareas.',
+        duration: 2000,
+        color: 'danger'
+      });
+      await toast.present();
     }
   }
 
   async loadTaskDetails(id: string): Promise<void> {
-    const loadedTask = await this.taskService.getTaskById(id);
-    if (loadedTask) {
-      this.task = { ...loadedTask };
-      this.selectedListId = loadedTask.listId || null;
-      // Format dueDate for ion-datetime if it's stored as ISO string
-      if (loadedTask.dueDate) {
-        this.task.dueDate = loadedTask.dueDate.split('T')[0]; // Ensure YYYY-MM-DD
+    try {
+      const loadedTask = await this.taskService.getTaskById(id);
+      if (loadedTask) {
+        this.currentTaskForEdit = loadedTask;
+        this.reminderForm.patchValue({
+          text: loadedTask.text,
+          time: loadedTask.time,
+          insistenceInterval: loadedTask.insistenceInterval,
+          frequency: loadedTask.frequency
+        });
+        this.updateDaysOfWeekCheckboxes(loadedTask.daysOfWeek);
+        this.selectedListId = loadedTask.listId || null;
+      } else {
+        const toast = await this.toastController.create({
+          message: 'Tarea no encontrada.',
+          duration: 2000,
+          color: 'danger'
+        });
+        await toast.present();
+        this.navController.back();
       }
-    } else {
-      const toast = await this.toastController.create({ message: 'Task not found.', duration: 2000, color: 'danger' });
+    } catch (error) {
+      console.error(`Error loading task details for ID ${id}:`, error);
+      const toast = await this.toastController.create({
+        message: 'Error al cargar los detalles de la tarea.',
+        duration: 2000,
+        color: 'danger'
+      });
       await toast.present();
       this.navController.back();
     }
+  }
+
+  updateDaysOfWeekCheckboxes(apiDays: number[] | undefined): void {
+    if (!apiDays) {
+      this.daysOfWeekOptions.forEach(opt => opt.isChecked = false);
+      return;
+    }
+    this.daysOfWeekOptions.forEach(dayOpt => {
+      dayOpt.isChecked = apiDays.includes(dayOpt.value);
+    });
   }
 
   onListChange(event: any): void {
     this.selectedListId = event.detail.value;
-    this.task.listId = this.selectedListId;
   }
 
-  // Example for handling daysOfWeek if you add a multi-select UI for it
-  // updateDaysOfWeek(selectedDays: number[]) {
-  //   this.task.daysOfWeek = selectedDays;
-  // }
-
-  async saveTask(): Promise<void> {
-    if (!this.task.text || this.task.text.trim() === '') {
-      const toast = await this.toastController.create({ message: 'Task text is required.', duration: 2000, color: 'danger' });
+  async saveReminder(): Promise<void> {
+    if (this.reminderForm.invalid) {
+      this.reminderForm.markAllAsTouched();
+      console.log('Form is invalid');
+      const toast = await this.toastController.create({
+        message: 'Por favor, complete todos los campos requeridos.',
+        duration: 2000,
+        color: 'warning'
+      });
       await toast.present();
       return;
     }
-    if (!this.selectedListId) {
-       const toast = await this.toastController.create({ message: 'Please select a list.', duration: 2000, color: 'danger' });
-       await toast.present();
-       return;
-    }
-    this.task.listId = this.selectedListId;
 
+    const formValues = this.reminderForm.value;
+    const selectedDays = this.daysOfWeekOptions.filter(opt => opt.isChecked).map(opt => opt.value);
 
-    // Ensure 'enabled' is a boolean; default to true if undefined for some reason on new tasks
-    this.task.enabled = this.task.enabled !== undefined ? this.task.enabled : true;
-    // Ensure numeric fields are numbers if they come from form inputs that might be strings
-    if (this.task.insistenceInterval) this.task.insistenceInterval = +this.task.insistenceInterval;
-    if (this.task.order) this.task.order = +this.task.order;
+    console.log('Form Values:', formValues);
+    console.log('Selected Days:', selectedDays);
+    console.log('Selected List ID:', this.selectedListId);
 
+    // In a real scenario, you would construct the Task object and call the service
+    // For example:
+    // const taskToSave: Partial<Task> = {
+    //   ...this.currentTaskForEdit, // if isEditMode
+    //   text: formValues.text,
+    //   time: formValues.time,
+    //   insistenceInterval: formValues.insistenceInterval,
+    //   frequency: formValues.frequency,
+    //   daysOfWeek: selectedDays,
+    //   listId: this.selectedListId,
+    //   enabled: this.currentTaskForEdit ? this.currentTaskForEdit.enabled : true // Default for new tasks
+    // };
 
-    try {
-      if (this.isEditMode && this.taskId) {
-        // Ensure all fields expected by updateTask are present
-        await this.taskService.updateTask(this.task as Task);
-      } else {
-        // For new tasks, id is generated by the service.
-        // 'enabled' is also set by service, but we ensure it here for consistency before sending.
-        const { id, ...newTaskData } = this.task; // Exclude 'id' if present on partial task object
+    // if (this.isEditMode && this.taskId) {
+    //   await this.taskService.updateTask({ ...taskToSave, id: this.taskId });
+    // } else {
+    //   await this.taskService.addTask(taskToSave);
+    // }
 
-        // The addTask method expects Omit<Task, 'id' | 'enabled'>
-        // Our current this.task is Partial<Task> and might have 'id' (as null/undefined) or 'enabled'
-        // So, we create an object that strictly matches the Omit type.
-        const dataForAdd: Omit<Task, 'id' | 'enabled'> = {
-            text: newTaskData.text!, // text is validated non-empty
-            frequency: newTaskData.frequency || 'daily', // Default if not set
-            time: newTaskData.time,
-            daysOfWeek: newTaskData.daysOfWeek,
-            insistenceInterval: newTaskData.insistenceInterval,
-            dueDate: newTaskData.dueDate,
-            description: newTaskData.description,
-            listId: newTaskData.listId!, // listId is validated non-empty
-            parentId: newTaskData.parentId,
-            order: newTaskData.order
-        };
-        await this.taskService.addTask(dataForAdd);
-      }
-      const toast = await this.toastController.create({ message: 'Task saved!', duration: 2000, color: 'success' });
-      await toast.present();
-      this.navController.back();
-    } catch (error) {
-      console.error("Error saving task:", error);
-      const toast = await this.toastController.create({ message: 'Error saving task. See console.', duration: 3000, color: 'danger' });
-      await toast.present();
-    }
+    const toast = await this.toastController.create({
+      message: 'Recordatorio guardado (simulación): ' + JSON.stringify(formValues),
+      duration: 2000,
+      color: 'success'
+    });
+    await toast.present();
+    this.navController.back();
   }
 }
