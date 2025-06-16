@@ -3,10 +3,10 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NavController, ToastController, IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Task } from '../../../models/task.model';
-import { TaskList } from '../../../models/task-list.model';
-import { TaskService } from '../../../services/task.service';
-import { TaskListService } from '../../../services/task-list.service';
+import { Task } from '../../models/task.model';
+import { TaskList } from '../../models/task-list.model';
+import { TaskService } from '../../services/task.service';
+import { TaskListService } from '../../services/task-list.service';
 
 @Component({
   selector: 'app-task-add',

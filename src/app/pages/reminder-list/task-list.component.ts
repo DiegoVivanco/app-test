@@ -4,10 +4,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, NavController, AlertController, IonRouterOutlet } from '@ionic/angular'; // IonRouterOutlet might not be used directly here but good for context
 
-import { TaskList } from '../../../models/task-list.model';
-import { Task } from '../../../models/task.model';
-import { TaskListService } from '../../../services/task-list.service';
-import { TaskService } from '../../../services/task.service';
+import { TaskList } from '../../models/task-list.model';
+import { Task } from '../../models/task.model';
+import { TaskListService } from '../../services/task-list.service';
+import { TaskService } from '../../services/task.service';
 // import { DailyStatusService } from '../../services/daily-status.service'; // Keep if still used, remove if not
 
 @Component({
@@ -159,6 +159,11 @@ export class TaskListPage implements OnInit { // Consider IonViewWillEnter for p
       ]
     });
     await alert.present();
+  }
+
+  getSelectedListName(): string {
+    const selected = this.taskLists.find(tl => tl.id === this.selectedListId);
+    return selected ? selected.name : '';
   }
 
   // Navigation methods - to be updated or used by HTML

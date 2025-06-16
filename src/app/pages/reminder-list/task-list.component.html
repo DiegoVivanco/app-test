@@ -41,7 +41,7 @@
   </ion-text>
 
   <!-- Tasks for Selected List Section -->
-  <ion-list-header *ngIf="selectedListId && tasks.length > 0 && taskLists.length > 0">{{ taskLists.find(tl => tl.id === selectedListId)?.name }} Tasks</ion-list-header>
+  <ion-list-header *ngIf="selectedListId && tasks.length > 0 && taskLists.length > 0">{{ getSelectedListName() }} Tasks</ion-list-header>
   <ion-list *ngIf="selectedListId && tasks.length > 0" [inset]="true">
     <ion-item-sliding *ngFor="let task of tasks">
       <ion-item button (click)="goToEditTaskPage(task)">
